@@ -3,9 +3,9 @@ description: >-
   iOS implementation of paper_scanner, using Vision for document detection and
   CoreImage for perspective crop and filters.
 version: 0.1.0
-homepage: https://github.com/datmanh002/paper_scanner
-repository: https://github.com/datmanh002/paper_scanner/tree/main/packages/paper_scanner_ios
-issue_tracker: https://github.com/datmanh002/paper_scanner/issues
+homepage: https://github.com/dattm-0301/paper_scanner
+repository: https://github.com/dattm-0301/paper_scanner/tree/main/packages/paper_scanner_ios
+issue_tracker: https://github.com/dattm-0301/paper_scanner/issues
 topics:
   - scanner
   - document

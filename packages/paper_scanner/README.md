@@ -5,7 +5,7 @@ edge detection, draggable corner crop, filters, multi-page, and optional PDF.
 
 Detection runs on **detection-only** native APIs (iOS `Vision`, Android
 OpenCV) — there is **no OS system-scanner UI**, so every pixel is yours to
-restyle and localize. See the [monorepo README](https://github.com/your-org/paper_scanner)
+restyle and localize. See the [monorepo README](https://github.com/dattm-0301/paper_scanner)
 for why the OS scanners (ML Kit / VisionKit) cannot be themed.
 
 ## Install
