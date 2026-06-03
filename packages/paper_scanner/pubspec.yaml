@@ -33,6 +33,7 @@ dependencies:
   pdf: ^3.11.0
 
 dev_dependencies:
+  camera_platform_interface: ^2.13.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0

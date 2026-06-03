@@ -29,8 +29,9 @@ class PaperScannerScreen extends StatefulWidget {
 }
 
 class _PaperScannerScreenState extends State<PaperScannerScreen> {
-  late final PaperScannerController _controller =
-      PaperScannerController(options: widget.options);
+  late final PaperScannerController _controller = PaperScannerController(
+    options: widget.options,
+  );
 
   // Bumped to force a fresh CameraView (and camera re-init) on permission retry.
   int _cameraAttempt = 0;
@@ -58,13 +59,15 @@ class _PaperScannerScreenState extends State<PaperScannerScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => PageReviewSheet(controller: _controller, style: widget.style),
+      builder: (_) =>
+          PageReviewSheet(controller: _controller, style: widget.style),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final style = widget.style;
+    final labels = style.labelsFor(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: style.systemOverlayStyle ?? SystemUiOverlayStyle.light,
       child: PopScope(
@@ -132,10 +135,12 @@ class _PaperScannerScreenState extends State<PaperScannerScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircularProgressIndicator(color: style.accentColor),
+                              CircularProgressIndicator(
+                                color: style.accentColor,
+                              ),
                               const SizedBox(height: 16),
                               Text(
-                                style.labels.processing,
+                                labels.processing,
                                 style: TextStyle(color: style.foregroundColor),
                               ),
                             ],
@@ -167,7 +172,7 @@ class _PermissionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = style.labels;
+    final labels = style.labelsFor(context);
     return ColoredBox(
       color: style.backgroundColor,
       child: SafeArea(
@@ -184,8 +189,11 @@ class _PermissionView extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.no_photography_outlined,
-                  color: style.foregroundColor, size: 56),
+              Icon(
+                Icons.no_photography_outlined,
+                color: style.foregroundColor,
+                size: 56,
+              ),
               const SizedBox(height: 20),
               Text(
                 labels.cameraPermissionTitle,
@@ -211,7 +219,10 @@ class _PermissionView extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: style.accentColor,
                   foregroundColor: style.onAccentColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 12,
+                  ),
                 ),
                 child: Text(labels.retryCamera),
               ),

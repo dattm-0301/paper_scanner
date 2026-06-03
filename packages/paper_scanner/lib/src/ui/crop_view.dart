@@ -62,6 +62,7 @@ class _CropViewState extends State<CropView> {
   @override
   Widget build(BuildContext context) {
     final style = widget.style;
+    final labels = style.labelsFor(context);
     final draft = widget.controller.draft;
     final size = _imageSize;
 
@@ -78,8 +79,10 @@ class _CropViewState extends State<CropView> {
                 aspectRatio: size.width / size.height,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final box =
-                        Size(constraints.maxWidth, constraints.maxHeight);
+                    final box = Size(
+                      constraints.maxWidth,
+                      constraints.maxHeight,
+                    );
                     return AnimatedBuilder(
                       animation: widget.controller,
                       builder: (context, _) {
@@ -128,25 +131,34 @@ class _CropViewState extends State<CropView> {
             widget.onKeep,
           )
         else
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildCropAction(
-                    label: style.labels.retake,
-                    primary: false,
-                    busy: false,
-                    onTap: widget.controller.busy ? null : widget.onRetake,
-                  ),
-                  _buildCropAction(
-                    label: style.labels.keep,
-                    primary: true,
-                    busy: widget.controller.busy,
-                    onTap: widget.controller.busy ? null : widget.onKeep,
-                  ),
-                ],
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildCropAction(
+                      label: labels.retake,
+                      primary: false,
+                      busy: false,
+                      onTap: widget.controller.busy ? null : widget.onRetake,
+                    ),
+                    _buildCropAction(
+                      label: labels.keep,
+                      primary: true,
+                      busy: widget.controller.busy,
+                      onTap: widget.controller.busy ? null : widget.onKeep,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -166,6 +178,9 @@ class _CropViewState extends State<CropView> {
       return builder(context, label, onTap, primary, busy, style);
     }
     return _Pill(
+      key: Key(
+        primary ? 'paper_scanner_keep_button' : 'paper_scanner_retake_button',
+      ),
       label: label,
       background: primary ? style.accentColor : style.onAccentColor,
       foreground: primary ? style.onAccentColor : style.accentColor,
@@ -191,8 +206,10 @@ class _CropViewState extends State<CropView> {
           final q = widget.controller.draft?.quad ?? Quad.full();
           final current = q.corners[index];
           final nx = (current.x + details.delta.dx / box.width).clamp(0.0, 1.0);
-          final ny =
-              (current.y + details.delta.dy / box.height).clamp(0.0, 1.0);
+          final ny = (current.y + details.delta.dy / box.height).clamp(
+            0.0,
+            1.0,
+          );
           widget.controller.updateDraftQuad(
             q.copyWithCorner(index, ScanPoint(nx, ny)),
           );
@@ -201,15 +218,18 @@ class _CropViewState extends State<CropView> {
           width: touch,
           height: touch,
           child: Center(
-            child: style.cornerHandleBuilder?.call(context) ??
+            child:
+                style.cornerHandleBuilder?.call(context) ??
                 Container(
                   width: r * 2,
                   height: r * 2,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.transparent,
-                    border:
-                        Border.all(color: style.cornerHandleColor, width: 3),
+                    border: Border.all(
+                      color: style.cornerHandleColor,
+                      width: 3,
+                    ),
                     boxShadow: const [
                       BoxShadow(color: Colors.black38, blurRadius: 3),
                     ],
@@ -225,6 +245,7 @@ class _CropViewState extends State<CropView> {
 /// A rounded pill button matching the reference design.
 class _Pill extends StatelessWidget {
   const _Pill({
+    super.key,
     required this.label,
     required this.background,
     required this.foreground,
@@ -245,29 +266,33 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Opacity(
         opacity: onTap == null ? 0.6 : 1,
         child: Container(
-          constraints: const BoxConstraints(minWidth: 73),
-          alignment: Alignment.center,
+          constraints: const BoxConstraints(minWidth: 73, minHeight: 44),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
           decoration: BoxDecoration(
             color: background,
             borderRadius: BorderRadius.circular(35),
-            border:
-                borderColor != null ? Border.all(color: borderColor!) : null,
+            border: borderColor != null
+                ? Border.all(color: borderColor!)
+                : null,
           ),
           child: busy
               ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: foreground),
+                    strokeWidth: 2,
+                    color: foreground,
+                  ),
                 )
               : Text(
                   label,
-                  style: textStyle ??
+                  style:
+                      textStyle ??
                       TextStyle(
                         color: foreground,
                         fontSize: 15,

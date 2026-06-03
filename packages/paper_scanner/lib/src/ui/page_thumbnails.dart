@@ -64,7 +64,7 @@ class PageReviewSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = style.labels;
+    final labels = style.labelsFor(context);
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -102,8 +102,9 @@ class PageReviewSheet extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: pages.length,
                     onReorderItem: (oldIndex, newIndex) {
-                      final legacyNewIndex =
-                          newIndex > oldIndex ? newIndex + 1 : newIndex;
+                      final legacyNewIndex = newIndex > oldIndex
+                          ? newIndex + 1
+                          : newIndex;
                       controller.reorderPages(oldIndex, legacyNewIndex);
                     },
                     itemBuilder: (context, index) {
@@ -126,8 +127,10 @@ class PageReviewSheet extends StatelessWidget {
                           style: TextStyle(color: style.foregroundColor),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.redAccent),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
                           onPressed: () => controller.deletePage(index),
                         ),
                       );

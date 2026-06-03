@@ -42,6 +42,10 @@ class CameraView extends StatefulWidget {
 }
 
 class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
+  static const double _topButtonBaseOffset = 8;
+  static const double _topButtonExtraOffset = 30;
+  static const double _readyStatusTopOffset = 110;
+
   CameraController? _camera;
   bool _initializing = true;
   bool _streaming = false;
@@ -206,10 +210,10 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   }
 
   IconData get _currentFlashIcon => switch (_flashMode) {
-        FlashMode.auto => Icons.flash_auto,
-        FlashMode.always => Icons.flash_on,
-        _ => Icons.flash_off,
-      };
+    FlashMode.auto => Icons.flash_auto,
+    FlashMode.always => Icons.flash_on,
+    _ => Icons.flash_off,
+  };
 
   void _openFilters() {
     showModalBottomSheet<void>(
@@ -297,41 +301,54 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
         widget.onDone,
       );
     }
+    final labels = style.labelsFor(context);
     final hasPages = widget.controller.pageCount > 0;
     final canFinish = widget.controller.canFinish;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _circleIcon(
+    final buttonTop =
+        MediaQuery.paddingOf(context).top +
+        _topButtonBaseOffset +
+        _topButtonExtraOffset;
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          PositionedDirectional(
+            top: buttonTop,
+            start: 16,
+            child: _circleIcon(
               Icons.close,
               widget.onCancel,
+              key: const Key('paper_scanner_cancel_button'),
               background: style.surfaceColor.withValues(alpha: 0.6),
               foreground: style.foregroundColor,
             ),
-            Expanded(
+          ),
+          if (hasPages)
+            Positioned(
+              top: _readyStatusTopOffset,
+              left: 0,
+              right: 0,
               child: Center(
-                child: hasPages
-                    ? _buildStatusPill(context, style.labels.readyForNextScan)
-                    : const SizedBox.shrink(),
+                child: _buildStatusPill(context, labels.readyForNextScan),
               ),
             ),
-            Opacity(
+          PositionedDirectional(
+            top: buttonTop,
+            end: 16,
+            child: Opacity(
               opacity: canFinish ? 1 : 0,
               child: IgnorePointer(
                 ignoring: !canFinish,
                 child: _circleIcon(
                   Icons.check,
                   widget.onDone,
+                  key: const Key('paper_scanner_done_button'),
                   background: style.confirmColor,
                   foreground: style.onAccentColor,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -385,31 +402,35 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
 
   Widget _buildControlsRow() {
     final style = widget.style;
+    final labels = style.labelsFor(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildControlButton(
           context,
+          key: const Key('paper_scanner_flash_control'),
           icon: _currentFlashIcon,
-          label: style.labels.flash,
+          label: labels.flash,
           onTap: _cycleFlash,
-          active: false,
+          active: _flashMode != FlashMode.off,
         ),
         const SizedBox(width: 28),
         _buildControlButton(
           context,
+          key: const Key('paper_scanner_filters_control'),
           icon: Icons.photo_filter,
-          label: style.labels.filters,
+          label: labels.filters,
           onTap: _openFilters,
-          active: false,
+          active: widget.controller.sessionFilter != ScanFilter.original,
         ),
         const SizedBox(width: 28),
         _buildControlButton(
           context,
+          key: const Key('paper_scanner_auto_shutter_control'),
           icon: widget.controller.autoCapture
               ? Icons.center_focus_strong
               : Icons.center_focus_weak,
-          label: style.labels.autoShutter,
+          label: labels.autoShutter,
           active: widget.controller.autoCapture,
           onTap: widget.controller.toggleAutoCapture,
         ),
@@ -471,44 +492,62 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     if (style.captureButtonBuilder != null) {
       return style.captureButtonBuilder!(context, _capture, _capturing);
     }
-    return GestureDetector(
-      onTap: widget.controller.canAddMore ? _capture : null,
-      child: Container(
-        width: 74,
-        height: 74,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: style.shutterColor,
-          border: Border.all(
-            color:
-                style.shutterBorderColor ?? Colors.white.withValues(alpha: 0.6),
-            width: style.shutterBorderWidth ?? 4,
+    final labels = style.labelsFor(context);
+    final enabled = widget.controller.canAddMore && !_capturing;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: labels.autoShutter,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? _capture : null,
+        child: Container(
+          key: const Key('paper_scanner_capture_button'),
+          width: 74,
+          height: 74,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: style.shutterColor,
+            border: Border.all(
+              color:
+                  style.shutterBorderColor ??
+                  Colors.white.withValues(alpha: 0.6),
+              width: style.shutterBorderWidth ?? 4,
+            ),
           ),
+          child: _capturing
+              ? const Padding(
+                  padding: EdgeInsets.all(22),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Colors.black54,
+                  ),
+                )
+              : null,
         ),
-        child: _capturing
-            ? const Padding(
-                padding: EdgeInsets.all(22),
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: Colors.black54,
-                ),
-              )
-            : null,
       ),
     );
   }
 
   Widget _buildStatusPill(BuildContext context, String label) {
     final style = widget.style;
-    return style.statusPillBuilder?.call(context, label, style) ??
-        _StatusPill(
-          label: label,
-          style: style,
-        );
+    final builder = style.statusPillBuilder;
+    if (builder != null) {
+      return KeyedSubtree(
+        key: const Key('paper_scanner_ready_status'),
+        child: builder(context, label, style),
+      );
+    }
+    return _StatusPill(
+      key: const Key('paper_scanner_ready_status'),
+      label: label,
+      style: style,
+    );
   }
 
   Widget _buildControlButton(
     BuildContext context, {
+    Key? key,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -524,6 +563,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
           style,
         ) ??
         _ControlButton(
+          key: key,
           icon: icon,
           label: label,
           style: style,
@@ -537,12 +577,17 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     VoidCallback onTap, {
     required Color background,
     required Color foreground,
+    Key? key,
   }) {
     final builder = widget.style.iconButtonBuilder;
     if (builder != null) {
-      return builder(context, icon, onTap, background, foreground);
+      return KeyedSubtree(
+        key: key,
+        child: builder(context, icon, onTap, background, foreground),
+      );
     }
     return Material(
+      key: key,
       color: background,
       shape: const CircleBorder(),
       child: InkWell(
@@ -559,10 +604,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
 
 /// An orange status pill ("Ready for next scan.").
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.label,
-    required this.style,
-  });
+  const _StatusPill({super.key, required this.label, required this.style});
 
   final String label;
   final PaperScannerStyle style;
@@ -577,7 +619,8 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: style.statusPillTextStyle ??
+        style:
+            style.statusPillTextStyle ??
             TextStyle(
               color: style.onAccentColor,
               fontSize: 15,
@@ -591,6 +634,7 @@ class _StatusPill extends StatelessWidget {
 /// A camera control: gray circular icon button with a label underneath.
 class _ControlButton extends StatelessWidget {
   const _ControlButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.style,
@@ -606,33 +650,44 @@ class _ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: active
-                  ? style.accentColor
-                  : style.surfaceColor.withValues(alpha: 0.7),
-            ),
-            child: Icon(
-              icon,
-              color: active ? style.onAccentColor : style.foregroundColor,
-              size: 24,
-            ),
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 64,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: active
+                      ? style.accentColor
+                      : style.surfaceColor.withValues(alpha: 0.7),
+                ),
+                child: Icon(
+                  icon,
+                  color: active ? style.onAccentColor : style.foregroundColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    style.controlLabelTextStyle ??
+                    TextStyle(color: style.foregroundColor, fontSize: 12),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: style.controlLabelTextStyle ??
-                TextStyle(color: style.foregroundColor, fontSize: 12),
-          ),
-        ],
+        ),
       ),
     );
   }

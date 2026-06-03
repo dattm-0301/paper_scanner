@@ -21,7 +21,7 @@ class FilterPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = style.labels;
+    final labels = style.labelsFor(context);
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
