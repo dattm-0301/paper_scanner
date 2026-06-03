@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      The CAMERA permission is required by consumers of this plugin. It is
+      declared here so it merges into the host app's manifest; the live preview
+      is driven by the `camera` package in the app-facing `paper_scanner`.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+</manifest>

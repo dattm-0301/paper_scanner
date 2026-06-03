@@ -1,0 +1,27 @@
+# Melos configuration for the paper_scanner federated plugin monorepo.
+# Melos is optional convenience tooling — every package also resolves
+# standalone via the path dependencies declared in each pubspec.yaml.
+name: paper_scanner_workspace
+
+packages:
+  - packages/**
+  - example
+
+command:
+  bootstrap:
+    # Keep example + packages linked locally during development.
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    description: Run `dart analyze` across every package.
+    run: melos exec -- "flutter analyze ."
+  test:
+    description: Run unit tests in packages that declare them.
+    run: melos exec --dir-exists=test -- "flutter test"
+  format:
+    description: Format all Dart sources.
+    run: melos exec -- "dart format ."
+  publish-dry:
+    description: Dry-run pub publish for every publishable package.
+    run: melos exec --no-private -- "flutter pub publish --dry-run"

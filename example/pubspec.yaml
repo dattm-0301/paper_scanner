@@ -1,0 +1,22 @@
+name: paper_scanner_example
+description: Demonstrates the paper_scanner plugin (custom-UI document scanner).
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  paper_scanner:
+    path: ../packages/paper_scanner
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

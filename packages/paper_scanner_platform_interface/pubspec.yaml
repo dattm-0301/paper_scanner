@@ -1,0 +1,30 @@
+name: paper_scanner_platform_interface
+description: >-
+  A common platform interface for the paper_scanner plugin. Defines the
+  detection, perspective-crop and filter operations every platform must
+  implement.
+version: 0.1.0
+homepage: https://github.com/datmanh002/paper_scanner
+repository: https://github.com/datmanh002/paper_scanner/tree/main/packages/paper_scanner_platform_interface
+issue_tracker: https://github.com/datmanh002/paper_scanner/issues
+topics:
+  - scanner
+  - document
+  - camera
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  # Pigeon regenerates the typed channel wrappers from pigeons/messages.dart.
+  # See README.md ("Pigeon migration").
+  pigeon: ^22.7.0

@@ -1,0 +1,59 @@
+buildscript {
+    ext.kotlin_version = "2.2.20"
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.12.1"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+plugins {
+    id "com.android.library"
+}
+
+group = "dev.paperscanner.paper_scanner_android"
+version = "1.0"
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+android {
+    namespace = "dev.paperscanner.paper_scanner_android"
+    compileSdk = 34
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+    }
+
+    defaultConfig {
+        // OpenCV 4.x ships native libs for arm64-v8a, armeabi-v7a, x86, x86_64.
+        // This is the ~10MB/abi size cost documented in the package README.
+        minSdk = 21
+    }
+
+    // OpenCV bundles prebuilt .so files; nothing to strip or compile here.
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+dependencies {
+    // Official OpenCV Android SDK, published to Maven Central since 4.9.0.
+    // Provides the Java bindings plus prebuilt native libraries per ABI.
+    implementation "org.opencv:opencv:4.10.0"
+}
