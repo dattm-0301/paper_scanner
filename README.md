@@ -1,10 +1,26 @@
 # paper_scanner
 
 A **fully custom, themeable** Flutter document scanner — live camera, automatic
-edge detection, draggable corner crop, filters, multi-page, and optional PDF
-output. Unlike packages that wrap the OS system scanners (ML Kit Document
-Scanner on Android, VisionKit `VNDocumentCameraViewController` on iOS), the
-entire UI is rendered by Flutter widgets you can restyle and localize.
+edge detection, **auto-capture**, draggable corner crop, filters, rotation,
+multi-page, and optional PDF output. Unlike packages that wrap the OS system
+scanners (ML Kit Document Scanner on Android, VisionKit
+`VNDocumentCameraViewController` on iOS), the entire UI is rendered by Flutter
+widgets you can restyle and localize — yet it **mimics the native look** of
+those scanners out of the box.
+
+## Capture & edit flow
+
+- **Auto-capture (default on):** the shutter fires automatically once a
+  confident document quad is held steady in frame — no tap required. The manual
+  shutter stays available. Toggle via `PaperScannerOptions(autoCapture: …)`; set
+  `confirmAfterCapture: true` to keep the legacy Retake / Keep step.
+- **Tap a page preview → full-screen detail view.** There each page can be
+  **re-cropped** (drag the corners again on the original capture, with a
+  magnifier loupe), **rotated** in 90° steps, **re-filtered** per page, or
+  deleted — the same toolset the OS scanners expose.
+- **Adaptive look:** `PaperScannerStyle.skin` (`ScannerSkin.adaptive` by
+  default) renders a VisionKit-style layout on iOS and an ML Kit-style layout on
+  Android; force either with `ScannerSkin.ios` / `ScannerSkin.android`.
 
 ## Why not just wrap the system scanner?
 
@@ -24,6 +40,7 @@ So `paper_scanner` uses **detection-only** platform APIs and builds its own UI:
 | Edge / quad detection | `Vision` (`VNDetectDocumentSegmentationRequest`, fallback `VNDetectRectanglesRequest`) | OpenCV (`Canny` → `findContours` → `approxPolyDP`) |
 | Perspective crop | CoreImage `CIPerspectiveCorrection` | OpenCV `warpPerspective` |
 | Filters | `CIColorControls` / `CIPhotoEffectMono` / threshold | `cvtColor` / `adaptiveThreshold` / CLAHE |
+| Rotation | CoreImage affine transform | `Bitmap` + `Matrix.postRotate` |
 
 ## Monorepo layout (federated plugin)
 

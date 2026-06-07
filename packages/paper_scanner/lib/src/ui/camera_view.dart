@@ -116,6 +116,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     final camera = _camera;
     if (camera == null ||
         _streaming ||
+        _capturing ||
         !camera.value.isInitialized ||
         !widget.controller.options.enableLiveDetection) {
       return;
@@ -125,6 +126,10 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   }
 
   Future<void> _stopStreamQuietly() async {
+    // Drop any in-progress auto-capture stability run so we never fire on a
+    // stale quad after resuming.
+    _stableHits = 0;
+    _lastAutoQuad = null;
     if (!_streaming) return;
     _streaming = false;
     try {
@@ -157,20 +162,55 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     );
   }
 
-  /// Captures automatically once a confident quad has been stable for a few
-  /// detections (only when auto-shutter is on).
+  /// Captures automatically once a document quad has been held reasonably
+  /// still for a few consecutive detections (only when auto-shutter is on).
+  ///
+  /// Instead of waiting for a high raw confidence — which the area-based
+  /// Android score rarely reaches — this fires when a decent quad stops moving,
+  /// matching how the OS scanners "lock on". The motion gate keeps it from
+  /// shooting a blurry frame while the user is still framing. The thresholds
+  /// are tunable per project via [PaperScannerOptions].
+  DetectedQuad? _lastAutoQuad;
+
   void _maybeAutoCapture() {
     if (!widget.controller.autoCapture || _capturing) return;
+    final options = widget.controller.options;
     final quad = widget.controller.liveQuad;
-    if (quad != null && quad.confidence >= 0.85) {
-      _stableHits++;
-      if (_stableHits >= 4) {
-        _stableHits = 0;
-        _capture();
-      }
-    } else {
+    if (quad == null || quad.confidence < options.autoCaptureConfidence) {
       _stableHits = 0;
+      _lastAutoQuad = quad;
+      return;
     }
+    final previous = _lastAutoQuad;
+    if (previous != null &&
+        _quadIsStill(
+          previous.quad,
+          quad.quad,
+          options.autoCaptureMotionTolerance,
+        )) {
+      _stableHits++;
+    } else {
+      _stableHits = 1;
+    }
+    _lastAutoQuad = quad;
+    if (_stableHits >= options.autoCaptureStableFrames) {
+      _stableHits = 0;
+      _lastAutoQuad = null;
+      _capture();
+    }
+  }
+
+  /// True when every corner of [b] is within [tolerance] of [a].
+  bool _quadIsStill(Quad a, Quad b, double tolerance) {
+    for (var i = 0; i < 4; i++) {
+      final pa = a.corners[i];
+      final pb = b.corners[i];
+      if ((pa.x - pb.x).abs() > tolerance ||
+          (pa.y - pb.y).abs() > tolerance) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _capture() async {
@@ -189,7 +229,12 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     } on CameraException catch (e) {
       scannerLog('capture failed: ${e.code}');
     } finally {
-      if (mounted) setState(() => _capturing = false);
+      if (mounted) {
+        setState(() => _capturing = false);
+        // After a seamless (auto-keep) capture the controller is back on the
+        // camera stage; resume realtime detection for the next page.
+        if (widget.controller.stage == ScanStage.camera) _ensureStreaming();
+      }
     }
   }
 
@@ -260,25 +305,10 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
         return Stack(
           fit: StackFit.expand,
           children: [
-            Center(
-              child: AspectRatio(
-                aspectRatio: 1 / camera.value.aspectRatio,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CameraPreview(camera),
-                    if (widget.controller.options.enableLiveDetection)
-                      CustomPaint(
-                        painter: QuadOverlayPainter(
-                          quad: widget.controller.liveQuad?.quad,
-                          strokeColor: style.overlayStrokeColor,
-                          fillColor: style.effectiveOverlayFill,
-                          strokeWidth: style.overlayStrokeWidth,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            _FullScreenCameraPreview(
+              camera: camera,
+              controller: widget.controller,
+              style: style,
             ),
             if (showChrome) _buildTopChrome(context),
             if (showChrome) _buildBottomChrome(context),
@@ -598,6 +628,58 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
           child: Icon(icon, color: foreground, size: 24),
         ),
       ),
+    );
+  }
+}
+
+class _FullScreenCameraPreview extends StatelessWidget {
+  const _FullScreenCameraPreview({
+    required this.camera,
+    required this.controller,
+    required this.style,
+  });
+
+  final CameraController camera;
+  final PaperScannerController controller;
+  final PaperScannerStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final previewAspectRatio = 1 / camera.value.aspectRatio;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bounds = Size(constraints.maxWidth, constraints.maxHeight);
+        final fittedPreview = applyBoxFit(
+          style.cameraPreviewFit,
+          Size(previewAspectRatio, 1),
+          bounds,
+        ).destination;
+
+        return ClipRect(
+          key: const Key('paper_scanner_camera_preview'),
+          child: Center(
+            child: SizedBox(
+              width: fittedPreview.width,
+              height: fittedPreview.height,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CameraPreview(camera),
+                  if (controller.options.enableLiveDetection)
+                    CustomPaint(
+                      painter: QuadOverlayPainter(
+                        quad: controller.liveQuad?.quad,
+                        strokeColor: style.overlayStrokeColor,
+                        fillColor: style.effectiveOverlayFill,
+                        strokeWidth: style.overlayStrokeWidth,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

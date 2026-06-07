@@ -7,7 +7,7 @@ import '../paper_scanner_options.dart';
 import '../paper_scanner_style.dart';
 import 'camera_view.dart';
 import 'crop_view.dart';
-import 'page_thumbnails.dart';
+import 'page_editor_view.dart';
 
 /// The full-screen scanner UI.
 ///
@@ -54,13 +54,20 @@ class _PaperScannerScreenState extends State<PaperScannerScreen> {
     setState(() => _cameraAttempt++);
   }
 
-  void _openReview() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) =>
-          PageReviewSheet(controller: _controller, style: widget.style),
+  /// Tapping the page preview opens the full-screen detail/edit view directly,
+  /// positioned on the most recent page.
+  void _openEditor() {
+    final lastIndex = _controller.pageCount - 1;
+    if (lastIndex < 0) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => PageEditorScreen(
+          controller: _controller,
+          initialIndex: lastIndex,
+          style: widget.style,
+        ),
+      ),
     );
   }
 
@@ -101,7 +108,7 @@ class _PaperScannerScreenState extends State<PaperScannerScreen> {
                     controller: _controller,
                     style: style,
                     onDone: _finish,
-                    onReview: _openReview,
+                    onReview: _openEditor,
                     onCancel: _cancel,
                   ),
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paper_scanner/paper_scanner.dart';
+import 'package:paper_document_scanner/paper_document_scanner.dart';
 import 'package:paper_scanner_platform_interface/paper_scanner_platform_interface.dart';
 
 /// In-memory platform that mimics native behavior by deriving deterministic
@@ -28,14 +28,20 @@ class _FakePlatform extends PaperScannerPlatform {
     if (filter == ScanFilter.original) return path;
     return '$path.${filter.wireName}';
   }
+
+  @override
+  Future<String> rotate(String path, int quarterTurns) async =>
+      '$path.r$quarterTurns';
 }
 
 void main() {
   late _FakePlatform platform;
 
+  // These tests exercise the explicit Retake/Keep confirm flow, so force it on.
+  // The default (seamless auto-keep) flow is covered separately below.
   PaperScannerController makeController(PaperScannerOptions options) {
     return PaperScannerController(
-      options: options,
+      options: options.copyWith(confirmAfterCapture: true),
       platform: platform,
       pdfAssembler: (paths) async => 'assembled_${paths.length}.pdf',
     );
@@ -132,11 +138,101 @@ void main() {
     expect(controller.canFinish, isTrue);
   });
 
-  test('autoCapture toggles', () {
+  test('autoCapture defaults on and toggles', () {
     final controller = makeController(const PaperScannerOptions());
-    expect(controller.autoCapture, isFalse);
+    expect(controller.autoCapture, isTrue); // on by default
     controller.toggleAutoCapture();
-    expect(controller.autoCapture, isTrue);
+    expect(controller.autoCapture, isFalse);
+  });
+
+  test('autoCapture can be disabled via options', () {
+    final controller = PaperScannerController(
+      options: const PaperScannerOptions(autoCapture: false),
+      platform: platform,
+    );
+    expect(controller.autoCapture, isFalse);
+  });
+
+  group('seamless capture (default flow)', () {
+    test('onCaptured commits immediately without a confirm step', () async {
+      final controller = PaperScannerController(
+        options: const PaperScannerOptions(),
+        platform: platform,
+      );
+      controller.markCameraReady();
+
+      await controller.onCaptured('/page.jpg');
+
+      expect(controller.stage, ScanStage.camera);
+      expect(controller.draft, isNull);
+      expect(controller.pageCount, 1);
+      expect(controller.pages.single.outputPath, '/page.jpg.cropped');
+    });
+
+    test('seamless capture applies the active session filter', () async {
+      final controller = PaperScannerController(
+        options: const PaperScannerOptions(initialFilter: ScanFilter.grayscale),
+        platform: platform,
+      );
+      await controller.onCaptured('/p.jpg');
+      expect(controller.pages.single.outputPath, '/p.jpg.cropped.grayscale');
+    });
+  });
+
+  group('per-page edits (detail view)', () {
+    Future<PaperScannerController> onePage(ScanFilter initial) async {
+      final controller = PaperScannerController(
+        options: PaperScannerOptions(initialFilter: initial),
+        platform: platform,
+      );
+      await controller.onCaptured('/p.jpg'); // seamless commit
+      return controller;
+    }
+
+    test('rotatePage cycles 0→1→…→0 and rotates the output', () async {
+      final controller = await onePage(ScanFilter.original);
+      expect(controller.pages.single.rotationTurns, 0);
+      expect(controller.pages.single.outputPath, '/p.jpg.cropped');
+
+      await controller.rotatePage(0);
+      expect(controller.pages.single.rotationTurns, 1);
+      expect(controller.pages.single.outputPath, '/p.jpg.cropped.r1');
+
+      await controller.rotatePage(0);
+      await controller.rotatePage(0);
+      await controller.rotatePage(0); // back to 0
+      expect(controller.pages.single.rotationTurns, 0);
+      expect(controller.pages.single.outputPath, '/p.jpg.cropped');
+    });
+
+    test('setPageFilter re-derives the filtered output', () async {
+      final controller = await onePage(ScanFilter.original);
+      await controller.setPageFilter(0, ScanFilter.grayscale);
+      expect(controller.pages.single.filter, ScanFilter.grayscale);
+      expect(controller.pages.single.outputPath, '/p.jpg.cropped.grayscale');
+    });
+
+    test('recropPage re-crops then re-applies filter and rotation', () async {
+      final controller = await onePage(ScanFilter.grayscale);
+      await controller.rotatePage(0); // rotationTurns == 1
+
+      await controller.recropPage(0, Quad.full());
+
+      final page = controller.pages.single;
+      expect(page.croppedPath, '/p.jpg.cropped');
+      expect(page.filteredPath, '/p.jpg.cropped.grayscale');
+      expect(page.rotationTurns, 1);
+      expect(page.outputPath, '/p.jpg.cropped.grayscale.r1');
+    });
+
+    test('edits on an out-of-range index are no-ops', () async {
+      final controller = await onePage(ScanFilter.original);
+      await controller.rotatePage(5);
+      await controller.setPageFilter(-1, ScanFilter.enhance);
+      await controller.recropPage(9, Quad.full());
+      expect(controller.pages.single.rotationTurns, 0);
+      expect(controller.pages.single.filter, ScanFilter.original);
+    });
   });
 
   test('deletePage and reorderPages mutate committed pages', () async {
@@ -159,5 +255,46 @@ void main() {
     controller.deletePage(0);
     expect(controller.pageCount, 2);
     expect(controller.pages.first.originalPath, '/3.jpg');
+  });
+
+  group('finish result', () {
+    test('returns per-page detail reflecting edits', () async {
+      final controller = PaperScannerController(
+        options: const PaperScannerOptions(initialFilter: ScanFilter.grayscale),
+        platform: platform,
+      );
+      await controller.onCaptured('/p.jpg'); // seamless commit (grayscale)
+      await controller.rotatePage(0); // rotationTurns -> 1
+
+      final result = await controller.finish();
+
+      expect(result.pageCount, 1);
+      expect(result.pages, hasLength(1));
+      final page = result.pages.single;
+      expect(page.originalPath, '/p.jpg');
+      expect(page.filter, ScanFilter.grayscale);
+      expect(page.rotationTurns, 1);
+      expect(page.quad, isNotNull);
+      expect(page.path, '/p.jpg.cropped.grayscale.r1');
+      expect(result.imagePaths.single, page.path); // imagePaths mirrors pages
+    });
+
+    test('result order follows reorder', () async {
+      final controller = PaperScannerController(
+        options: const PaperScannerOptions(),
+        platform: platform,
+      );
+      await controller.onCaptured('/a.jpg');
+      await controller.onCaptured('/b.jpg');
+      controller.reorderPages(0, 2); // move first to last -> [b, a]
+
+      final result = await controller.finish();
+
+      expect(
+        result.pages.map((p) => p.originalPath).toList(),
+        ['/b.jpg', '/a.jpg'],
+      );
+      expect(result.imagePaths, ['/b.jpg.cropped', '/a.jpg.cropped']);
+    });
   });
 }

@@ -58,4 +58,14 @@ abstract class PaperScannerPlatform extends PlatformInterface {
   Future<String> applyFilter(String path, ScanFilter filter) {
     throw UnimplementedError('applyFilter() has not been implemented.');
   }
+
+  /// Rotates the image at [path] clockwise by [quarterTurns] × 90°, writing the
+  /// result to a new file and returning its path.
+  ///
+  /// [quarterTurns] is normalized modulo 4; `0` is a no-op and implementations
+  /// may return [path] unchanged. Used by the detail-view "rotate" tool, so it
+  /// runs on already cropped/filtered page images.
+  Future<String> rotate(String path, int quarterTurns) {
+    throw UnimplementedError('rotate() has not been implemented.');
+  }
 }

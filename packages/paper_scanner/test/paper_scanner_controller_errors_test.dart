@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paper_scanner/paper_scanner.dart';
+import 'package:paper_document_scanner/paper_document_scanner.dart';
 import 'package:paper_scanner_platform_interface/paper_scanner_platform_interface.dart';
 
 /// Configurable fake platform used to exercise the controller's error and
@@ -53,7 +53,8 @@ void main() {
   test('onCaptured falls back to a full quad when still detection throws',
       () async {
     final c = PaperScannerController(
-      options: const PaperScannerOptions(),
+      // Confirm flow so the draft (and its fallback quad) is observable.
+      options: const PaperScannerOptions(confirmAfterCapture: true),
       platform: _Fake(failDetectImage: true),
     );
     addTearDown(c.dispose);
@@ -69,7 +70,7 @@ void main() {
   test('keepDraft records an error and keeps the draft when crop fails',
       () async {
     final c = PaperScannerController(
-      options: const PaperScannerOptions(),
+      options: const PaperScannerOptions(confirmAfterCapture: true),
       platform: _Fake(failCrop: true),
     );
     addTearDown(c.dispose);

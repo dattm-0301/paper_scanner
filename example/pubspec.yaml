@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  paper_scanner:
+  paper_document_scanner:
     path: ../packages/paper_scanner
 
 dev_dependencies:

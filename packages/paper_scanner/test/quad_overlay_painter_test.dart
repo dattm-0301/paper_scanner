@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paper_scanner/src/ui/quad_overlay_painter.dart';
+import 'package:paper_document_scanner/src/ui/quad_overlay_painter.dart';
 import 'package:paper_scanner_platform_interface/paper_scanner_platform_interface.dart';
 
 void main() {

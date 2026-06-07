@@ -2,7 +2,7 @@ name: paper_scanner_android
 description: >-
   Android implementation of paper_scanner, using OpenCV for document
   detection, perspective crop and filters.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/dattm-0301/paper_scanner
 repository: https://github.com/dattm-0301/paper_scanner/tree/main/packages/paper_scanner_android
 issue_tracker: https://github.com/dattm-0301/paper_scanner/issues
@@ -25,7 +25,7 @@ dev_dependencies:
 
 flutter:
   plugin:
-    implements: paper_scanner
+    implements: paper_document_scanner
     platforms:
       android:
         package: dev.paperscanner.paper_scanner_android

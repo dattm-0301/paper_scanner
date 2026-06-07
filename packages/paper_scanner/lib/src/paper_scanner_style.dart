@@ -5,6 +5,23 @@ import 'package:paper_scanner_platform_interface/paper_scanner_platform_interfac
 import 'paper_scan_result.dart';
 import 'paper_scanner_controller.dart';
 
+/// Which native scanner look the UI should imitate.
+///
+/// The capture and detail/edit screens render a layout, iconography and control
+/// arrangement modeled on the OS document scanners — Apple VisionKit on iOS and
+/// the Google ML Kit Document Scanner on Android.
+enum ScannerSkin {
+  /// Pick the look from the ambient [TargetPlatform]: VisionKit-style on
+  /// iOS/macOS, ML Kit-style elsewhere. The default.
+  adaptive,
+
+  /// Always use the VisionKit-style (iOS) look.
+  ios,
+
+  /// Always use the ML Kit-style (Android) look.
+  android,
+}
+
 /// Builds the capture (shutter) button. [onCapture] takes the photo; [busy] is
 /// true while a capture/processing step is running.
 typedef CaptureButtonBuilder =
@@ -75,6 +92,59 @@ typedef PageThumbnailBuilder =
       PaperScannerStyle style,
     );
 
+/// Builds the committed-page review bottom sheet. Use this for a full
+/// replacement of the review title, list, spacing and actions.
+typedef PageReviewSheetBuilder =
+    Widget Function(
+      BuildContext context,
+      PaperScannerController controller,
+      PaperScannerStyle style,
+      PaperScannerLabels labels,
+      VoidCallback onClose,
+      void Function(int index) onPreview,
+      void Function(int index) onDelete,
+    );
+
+/// Builds the page review list inside the bottom sheet.
+typedef PageReviewListBuilder =
+    Widget Function(
+      BuildContext context,
+      PaperScannerController controller,
+      List<ScannedPage> pages,
+      PaperScannerStyle style,
+      PaperScannerLabels labels,
+      void Function(int oldIndex, int newIndex) onReorder,
+      void Function(int index) onPreview,
+      void Function(int index) onDelete,
+    );
+
+/// Builds one committed-page row in the review list.
+typedef PageReviewTileBuilder =
+    Widget Function(
+      BuildContext context,
+      ScannedPage page,
+      int index,
+      String label,
+      PaperScannerStyle style,
+      PaperScannerLabels labels,
+      VoidCallback onPreview,
+      VoidCallback onDelete,
+      Widget dragHandle,
+    );
+
+/// Builds the full-screen committed-page preview opened from the review list.
+typedef PagePreviewBuilder =
+    Widget Function(
+      BuildContext context,
+      ScannedPage page,
+      int index,
+      String label,
+      PaperScannerStyle style,
+      PaperScannerLabels labels,
+      VoidCallback onClose,
+      VoidCallback onDelete,
+    );
+
 /// Builds a single draggable crop corner handle.
 typedef CornerHandleBuilder = Widget Function(BuildContext context);
 
@@ -123,6 +193,13 @@ class PaperScannerLabels {
     this.flash = 'Blitz',
     this.filters = 'Filter',
     this.autoShutter = 'Auslöser',
+    this.crop = 'Zuschneiden',
+    this.rotate = 'Drehen',
+    this.edit = 'Bearbeiten',
+    this.save = 'Speichern',
+    this.addPage = 'Hinzufügen',
+    this.auto = 'Auto',
+    this.manual = 'Manuell',
     this.filterOriginal = 'Original',
     this.filterEnhance = 'Verbessern',
     this.filterGrayscale = 'Graustufen',
@@ -150,6 +227,13 @@ class PaperScannerLabels {
     flash: 'Flash',
     filters: 'Filters',
     autoShutter: 'Shutter',
+    crop: 'Crop',
+    rotate: 'Rotate',
+    edit: 'Edit',
+    save: 'Save',
+    addPage: 'Add',
+    auto: 'Auto',
+    manual: 'Manual',
     filterOriginal: 'Original',
     filterEnhance: 'Enhance',
     filterGrayscale: 'Grayscale',
@@ -174,6 +258,13 @@ class PaperScannerLabels {
     flash: 'Đèn',
     filters: 'Bộ lọc',
     autoShutter: 'Màn trập',
+    crop: 'Cắt',
+    rotate: 'Xoay',
+    edit: 'Chỉnh sửa',
+    save: 'Lưu',
+    addPage: 'Thêm',
+    auto: 'Tự động',
+    manual: 'Thủ công',
     filterOriginal: 'Gốc',
     filterEnhance: 'Nâng cao',
     filterGrayscale: 'Xám',
@@ -197,6 +288,13 @@ class PaperScannerLabels {
   final String flash;
   final String filters;
   final String autoShutter;
+  final String crop;
+  final String rotate;
+  final String edit;
+  final String save;
+  final String addPage;
+  final String auto;
+  final String manual;
   final String filterOriginal;
   final String filterEnhance;
   final String filterGrayscale;
@@ -256,6 +354,13 @@ class PaperScannerLabels {
         _german.autoShutter,
         localized.autoShutter,
       ),
+      crop: _localizedOrCustom(crop, _german.crop, localized.crop),
+      rotate: _localizedOrCustom(rotate, _german.rotate, localized.rotate),
+      edit: _localizedOrCustom(edit, _german.edit, localized.edit),
+      save: _localizedOrCustom(save, _german.save, localized.save),
+      addPage: _localizedOrCustom(addPage, _german.addPage, localized.addPage),
+      auto: _localizedOrCustom(auto, _german.auto, localized.auto),
+      manual: _localizedOrCustom(manual, _german.manual, localized.manual),
       filterOriginal: _localizedOrCustom(
         filterOriginal,
         _german.filterOriginal,
@@ -341,6 +446,8 @@ class PaperScannerStyle {
     this.cornerHandleColor = Colors.white,
     this.cornerHandleRadius = 16.0,
     this.filterChipSelectedColor,
+    this.cameraPreviewFit = BoxFit.cover,
+    this.skin = ScannerSkin.adaptive,
     this.labels = const PaperScannerLabels(),
     this.captureButtonBuilder,
     this.cameraTopChromeBuilder,
@@ -349,6 +456,10 @@ class PaperScannerStyle {
     this.iconButtonBuilder,
     this.controlButtonBuilder,
     this.pageThumbnailBuilder,
+    this.pageReviewSheetBuilder,
+    this.pageReviewListBuilder,
+    this.pageReviewTileBuilder,
+    this.pagePreviewBuilder,
     this.cornerHandleBuilder,
     this.actionButtonBuilder,
     this.cropActionsBuilder,
@@ -356,10 +467,31 @@ class PaperScannerStyle {
     this.statusPillTextStyle,
     this.controlLabelTextStyle,
     this.cropActionTextStyle,
+    this.reviewTitleTextStyle,
+    this.reviewPageTextStyle,
+    this.reviewPreviewTitleTextStyle,
     this.shutterBorderColor,
     this.shutterBorderWidth,
     this.thumbnailBorderColor,
     this.thumbnailBorderWidth,
+    this.reviewSheetPadding = const EdgeInsets.only(top: 12, bottom: 16),
+    this.reviewHeaderPadding = const EdgeInsets.fromLTRB(20, 4, 12, 8),
+    this.reviewListPadding = const EdgeInsets.fromLTRB(16, 8, 16, 20),
+    this.reviewItemPadding = const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 10,
+    ),
+    this.reviewItemSpacing = 10,
+    this.reviewItemBorderRadius = 8,
+    this.reviewTileMinHeight = 78,
+    this.reviewThumbnailSize = const Size(48, 64),
+    this.reviewCloseIcon = Icons.close,
+    this.reviewDeleteIcon = Icons.delete_outline,
+    this.reviewDragHandleIcon = Icons.drag_handle,
+    this.previewCloseIcon = Icons.close,
+    this.previewDeleteIcon = Icons.delete_outline,
+    this.reviewDeleteColor = Colors.redAccent,
+    this.reviewPreviewBackgroundColor,
     this.systemOverlayStyle,
   });
 
@@ -402,6 +534,17 @@ class PaperScannerStyle {
   /// Background of the selected filter chip. Defaults to [accentColor].
   final Color? filterChipSelectedColor;
 
+  /// How the live camera preview fits the scanner viewport.
+  ///
+  /// Defaults to [BoxFit.cover] so the camera fills the full scanner screen
+  /// without letterboxing. Use [BoxFit.contain] to preserve the previous
+  /// centered/letterboxed style, or [BoxFit.fill] to stretch.
+  final BoxFit cameraPreviewFit;
+
+  /// Which native scanner look to imitate (VisionKit-style vs ML Kit-style).
+  /// Defaults to [ScannerSkin.adaptive] (chosen from the platform).
+  final ScannerSkin skin;
+
   /// All localized strings.
   final PaperScannerLabels labels;
 
@@ -426,6 +569,18 @@ class PaperScannerStyle {
   /// Optional replacement for the bottom-left page preview thumbnail.
   final PageThumbnailBuilder? pageThumbnailBuilder;
 
+  /// Optional full replacement for the committed-page review bottom sheet.
+  final PageReviewSheetBuilder? pageReviewSheetBuilder;
+
+  /// Optional replacement for the committed-page review list.
+  final PageReviewListBuilder? pageReviewListBuilder;
+
+  /// Optional replacement for one committed-page review row.
+  final PageReviewTileBuilder? pageReviewTileBuilder;
+
+  /// Optional full replacement for the full-screen page preview.
+  final PagePreviewBuilder? pagePreviewBuilder;
+
   /// Optional full replacement for crop corner handles.
   final CornerHandleBuilder? cornerHandleBuilder;
 
@@ -447,6 +602,15 @@ class PaperScannerStyle {
   /// Optional text style override for crop action pills.
   final TextStyle? cropActionTextStyle;
 
+  /// Optional text style override for the review sheet title.
+  final TextStyle? reviewTitleTextStyle;
+
+  /// Optional text style override for review list page labels.
+  final TextStyle? reviewPageTextStyle;
+
+  /// Optional text style override for the full-screen preview title.
+  final TextStyle? reviewPreviewTitleTextStyle;
+
   /// Optional shutter border color override.
   final Color? shutterBorderColor;
 
@@ -459,8 +623,68 @@ class PaperScannerStyle {
   /// Optional thumbnail border width override.
   final double? thumbnailBorderWidth;
 
+  /// Padding around the default review sheet content.
+  final EdgeInsetsGeometry reviewSheetPadding;
+
+  /// Padding around the review sheet header row.
+  final EdgeInsetsGeometry reviewHeaderPadding;
+
+  /// Padding around the review sheet list.
+  final EdgeInsets reviewListPadding;
+
+  /// Padding inside each default review row.
+  final EdgeInsetsGeometry reviewItemPadding;
+
+  /// Vertical spacing between default review rows.
+  final double reviewItemSpacing;
+
+  /// Border radius for each default review row.
+  final double reviewItemBorderRadius;
+
+  /// Minimum height for each default review row.
+  final double reviewTileMinHeight;
+
+  /// Thumbnail size for each default review row.
+  final Size reviewThumbnailSize;
+
+  /// Icon used by default review close buttons.
+  final IconData reviewCloseIcon;
+
+  /// Icon used by default review delete buttons.
+  final IconData reviewDeleteIcon;
+
+  /// Icon used by default review drag handles.
+  final IconData reviewDragHandleIcon;
+
+  /// Icon used by the default full-screen preview close button.
+  final IconData previewCloseIcon;
+
+  /// Icon used by the default full-screen preview delete button.
+  final IconData previewDeleteIcon;
+
+  /// Color used by default review delete actions.
+  final Color reviewDeleteColor;
+
+  /// Background color for the default full-screen page preview.
+  final Color? reviewPreviewBackgroundColor;
+
   /// Status/navigation bar overlay style for the scanner route.
   final SystemUiOverlayStyle? systemOverlayStyle;
+
+  /// Whether the VisionKit-style (iOS) look should be used in [context],
+  /// resolving [ScannerSkin.adaptive] against the ambient [TargetPlatform].
+  bool isCupertino(BuildContext context) {
+    switch (skin) {
+      case ScannerSkin.ios:
+        return true;
+      case ScannerSkin.android:
+        return false;
+      case ScannerSkin.adaptive:
+        final platform = Theme.of(context).platform;
+        return platform == TargetPlatform.iOS ||
+            platform == TargetPlatform.macOS;
+    }
+  }
 
   /// Effective overlay fill color (transparent when unset).
   Color get effectiveOverlayFill => overlayFillColor ?? Colors.transparent;

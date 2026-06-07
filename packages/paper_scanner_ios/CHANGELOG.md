@@ -1,3 +1,7 @@
+## 0.1.1
+
+* Retargets the federated implementation to `paper_document_scanner`.
+
 ## 0.1.0
 
 * Initial release.

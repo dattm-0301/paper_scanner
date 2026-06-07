@@ -42,6 +42,7 @@ class PaperScannerController extends ChangeNotifier {
   }) : _platform = platform ?? PaperScannerPlatform.instance,
        _pdfAssembler = pdfAssembler {
     _sessionFilter = options.initialFilter;
+    _autoCapture = options.autoCapture;
   }
 
   /// Behavioral options for this session.
@@ -102,7 +103,8 @@ class PaperScannerController extends ChangeNotifier {
   }
 
   /// Whether auto-capture is enabled (capture when a stable quad is detected).
-  bool _autoCapture = false;
+  /// Initialized from [PaperScannerOptions.autoCapture] (on by default).
+  bool _autoCapture = true;
   bool get autoCapture => _autoCapture;
 
   /// Toggles auto-capture mode.
@@ -147,22 +149,54 @@ class PaperScannerController extends ChangeNotifier {
 
   // --- capture / crop / keep ---------------------------------------------
 
-  /// Handles a freshly captured still at [path]: seeds a draft page and runs
-  /// still detection to pre-place the crop corners.
+  /// Handles a freshly captured still at [path].
+  ///
+  /// Runs still detection to place the crop corners, then:
+  ///
+  /// * if [PaperScannerOptions.confirmAfterCapture] is set, pauses on the crop
+  ///   stage so the user can Retake / Keep (the legacy flow); otherwise
+  /// * commits the page immediately with the detected crop and the active
+  ///   session filter (the default, native-like flow) and returns to the
+  ///   camera. Corrections happen later in the detail/edit view.
   Future<void> onCaptured(String path) async {
     _liveQuad = null;
-    _draft = ScannedPage(originalPath: path, quad: Quad.full());
     _error = null;
+    final draft = ScannedPage(originalPath: path, quad: Quad.full());
+    _draft = draft;
     _setBusy(true);
-    _setStage(ScanStage.crop);
+    if (options.confirmAfterCapture) _setStage(ScanStage.crop);
+
     try {
       final detected = await _platform.detectInImage(path);
-      _draft?.quad = detected?.quad ?? Quad.full();
+      draft.quad = detected?.quad ?? Quad.full();
     } catch (e) {
       scannerLog('detectInImage failed: $e');
-      _draft?.quad = Quad.full();
+      draft.quad = Quad.full();
+    }
+
+    if (options.confirmAfterCapture) {
+      _setBusy(false);
+      return;
+    }
+
+    // Seamless auto-keep: crop + filter + commit, then back to the camera.
+    try {
+      draft.croppedPath = await _platform.cropPerspective(
+        draft.originalPath,
+        (draft.quad ?? Quad.full()).clamped,
+      );
+      draft.filter = _sessionFilter;
+      draft.filteredPath = _sessionFilter == ScanFilter.original
+          ? null
+          : await _platform.applyFilter(draft.croppedPath!, _sessionFilter);
+      _commitDraft();
+    } catch (e) {
+      _error = '$e';
+      scannerLog('onCaptured auto-keep failed: $e');
+      _draft = null;
     } finally {
       _setBusy(false);
+      _setStage(ScanStage.camera);
     }
   }
 
@@ -215,6 +249,92 @@ class PaperScannerController extends ChangeNotifier {
     _draft = null;
   }
 
+  // --- per-page edits (detail / edit view) --------------------------------
+
+  ScannedPage? _pageAt(int index) =>
+      (index < 0 || index >= _pages.length) ? null : _pages[index];
+
+  /// Re-applies the perspective crop on the committed page at [index] using a
+  /// new [quad] (from the detail-view re-crop tool), then re-applies its filter
+  /// and rotation on top.
+  Future<void> recropPage(int index, Quad quad) async {
+    final page = _pageAt(index);
+    if (page == null) return;
+    page.quad = quad;
+    await _rebuildPage(
+      page,
+      cropDirty: true,
+      filterDirty: false,
+      rotationDirty: false,
+    );
+  }
+
+  /// Changes the [filter] of the committed page at [index] (detail-view filter
+  /// tool), re-deriving the filtered image and re-applying rotation.
+  Future<void> setPageFilter(int index, ScanFilter filter) async {
+    final page = _pageAt(index);
+    if (page == null || page.filter == filter) return;
+    page.filter = filter;
+    await _rebuildPage(
+      page,
+      cropDirty: false,
+      filterDirty: true,
+      rotationDirty: false,
+    );
+  }
+
+  /// Rotates the committed page at [index] clockwise by [by] quarter turns
+  /// (detail-view rotate tool). Only the (cheap) rotation step is re-run.
+  Future<void> rotatePage(int index, {int by = 1}) async {
+    final page = _pageAt(index);
+    if (page == null) return;
+    page.rotationTurns = (page.rotationTurns + by) % 4;
+    await _rebuildPage(
+      page,
+      cropDirty: false,
+      filterDirty: false,
+      rotationDirty: true,
+    );
+  }
+
+  /// Recomputes a page's derived images. Each dirty step cascades into the
+  /// next (a new crop invalidates the filter, a new filter invalidates the
+  /// rotation), so editing a corner correctly re-runs filter + rotation.
+  Future<void> _rebuildPage(
+    ScannedPage page, {
+    required bool cropDirty,
+    required bool filterDirty,
+    required bool rotationDirty,
+  }) async {
+    _setBusy(true);
+    _error = null;
+    try {
+      if (cropDirty || page.croppedPath == null) {
+        page.croppedPath = await _platform.cropPerspective(
+          page.originalPath,
+          (page.quad ?? Quad.full()).clamped,
+        );
+        filterDirty = true;
+      }
+      if (filterDirty) {
+        page.filteredPath = page.filter == ScanFilter.original
+            ? null
+            : await _platform.applyFilter(page.croppedPath!, page.filter);
+        rotationDirty = true;
+      }
+      if (rotationDirty) {
+        page.rotatedPath = page.rotationTurns % 4 == 0
+            ? null
+            : await _platform.rotate(page.processedPath, page.rotationTurns);
+      }
+    } catch (e) {
+      _error = '$e';
+      scannerLog('rebuildPage failed: $e');
+    } finally {
+      _setBusy(false);
+    }
+  }
+
   // --- multi-page editing -------------------------------------------------
 
   /// Removes the committed page at [index].
@@ -241,7 +361,18 @@ class PaperScannerController extends ChangeNotifier {
   Future<PaperScanResult> finish() async {
     _commitDraft();
     _setStage(ScanStage.processing);
-    final paths = _pages.map((p) => p.outputPath).toList(growable: false);
+    final pageResults = _pages
+        .map(
+          (p) => ScannedPageResult(
+            path: p.outputPath,
+            originalPath: p.originalPath,
+            filter: p.filter,
+            rotationTurns: p.rotationTurns,
+            quad: p.quad,
+          ),
+        )
+        .toList(growable: false);
+    final paths = pageResults.map((p) => p.path).toList(growable: false);
     String? pdfPath;
     if (options.outputPdf && paths.isNotEmpty) {
       try {
@@ -252,7 +383,11 @@ class PaperScannerController extends ChangeNotifier {
       }
     }
     _setStage(ScanStage.finished);
-    return PaperScanResult(imagePaths: paths, pdfPath: pdfPath);
+    return PaperScanResult(
+      imagePaths: paths,
+      pdfPath: pdfPath,
+      pages: pageResults,
+    );
   }
 
   // --- internals ----------------------------------------------------------

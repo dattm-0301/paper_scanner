@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:paper_scanner/paper_scanner.dart';
+import 'package:paper_document_scanner/paper_document_scanner.dart';
 
 void main() => runApp(const DemoApp());
 
@@ -11,7 +11,7 @@ class DemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'paper_scanner demo',
+      title: 'paper_document_scanner demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
       home: const HomePage(),
@@ -65,19 +65,37 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final result = _result;
     return Scaffold(
-      appBar: AppBar(title: const Text('paper_scanner demo')),
+      appBar: AppBar(title: const Text('paper_document_scanner demo')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
             'Launch the fully custom document scanner. Detection runs on '
-            'Vision (iOS) / OpenCV (Android); the UI is pure Flutter.',
+            'Vision (iOS) / OpenCV (Android); the UI is pure Flutter.\n\n'
+            'Auto-capture shoots once a document is held steady — no shutter '
+            'tap needed. Tap a captured page to open the full-screen editor and '
+            're-crop, rotate or re-filter it. The look adapts to the platform '
+            '(VisionKit-style on iOS, ML Kit-style on Android).',
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: () => _scan(const PaperScannerStyle()),
             icon: const Icon(Icons.document_scanner_outlined),
-            label: const Text('Scan (default style)'),
+            label: const Text('Scan (adaptive native look)'),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonalIcon(
+            onPressed: () =>
+                _scan(const PaperScannerStyle(skin: ScannerSkin.ios)),
+            icon: const Icon(Icons.phone_iphone),
+            label: const Text('Scan (force VisionKit look)'),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonalIcon(
+            onPressed: () =>
+                _scan(const PaperScannerStyle(skin: ScannerSkin.android)),
+            icon: const Icon(Icons.android),
+            label: const Text('Scan (force ML Kit look)'),
           ),
           const SizedBox(height: 12),
           FilledButton.tonalIcon(

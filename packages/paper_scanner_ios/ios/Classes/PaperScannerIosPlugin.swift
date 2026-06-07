@@ -33,6 +33,8 @@ public class PaperScannerIosPlugin: NSObject, FlutterPlugin {
         self.handleCropPerspective(call, result)
       case "applyFilter":
         self.handleApplyFilter(call, result)
+      case "rotate":
+        self.handleRotate(call, result)
       default:
         self.reply(result, FlutterMethodNotImplemented)
       }
@@ -100,6 +102,20 @@ public class PaperScannerIosPlugin: NSObject, FlutterPlugin {
     let filter = args["filter"] as? String ?? "original"
     do {
       let outPath = try ImageProcessor.applyFilter(path: path, filter: filter)
+      reply(result, outPath)
+    } catch {
+      reply(result, self.error(error))
+    }
+  }
+
+  private func handleRotate(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any],
+          let path = args["path"] as? String else {
+      return reply(result, argError())
+    }
+    let quarterTurns = args["quarterTurns"] as? Int ?? 0
+    do {
+      let outPath = try ImageProcessor.rotate(path: path, quarterTurns: quarterTurns)
       reply(result, outPath)
     } catch {
       reply(result, self.error(error))

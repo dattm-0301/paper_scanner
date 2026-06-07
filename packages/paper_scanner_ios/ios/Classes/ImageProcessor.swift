@@ -77,6 +77,25 @@ enum ImageProcessor {
     return try writeJPEG(output)
   }
 
+  /// Rotates [path] clockwise by [quarterTurns] × 90° and writes a new JPEG.
+  static func rotate(path: String, quarterTurns: Int) throws -> String {
+    guard let cg = uprightCGImage(path: path) else { throw ProcessingError.decode }
+    let turns = ((quarterTurns % 4) + 4) % 4
+    let ci = CIImage(cgImage: cg)
+    if turns == 0 { return try writeJPEG(ci) }
+
+    // CoreImage rotates counter-clockwise for positive angles, so negate to
+    // turn clockwise (matching the Dart contract and the Android side).
+    let angle = -CGFloat(turns) * (.pi / 2)
+    let rotated = ci.transformed(by: CGAffineTransform(rotationAngle: angle))
+    // Re-seat the rotated extent at the origin so the JPEG has no offset.
+    let seated = rotated.transformed(
+      by: CGAffineTransform(translationX: -rotated.extent.origin.x,
+                            y: -rotated.extent.origin.y)
+    )
+    return try writeJPEG(seated)
+  }
+
   /// High-contrast bilevel look. Prefers `CIColorThreshold` (where available),
   /// otherwise crushes a monochrome image's contrast.
   private static func blackWhite(_ input: CIImage) -> CIImage {

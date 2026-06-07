@@ -92,6 +92,25 @@ object ImageProcessor {
         return matToJpeg(context, out)
     }
 
+    /**
+     * Rotates [path] clockwise by [quarterTurns] × 90° and writes a new JPEG.
+     *
+     * The source is decoded upright (EXIF baked in) first, so the rotation is
+     * applied on the same pixels Flutter displays. The output JPEG carries no
+     * EXIF orientation, so re-decoding it later is a no-op.
+     */
+    fun rotate(context: Context, path: String, quarterTurns: Int): String {
+        val turns = ((quarterTurns % 4) + 4) % 4
+        val bitmap = loadUprightBitmap(path)
+            ?: throw IllegalArgumentException("Unable to decode image at $path")
+        if (turns == 0) return bitmapToJpeg(context, bitmap)
+        val matrix = Matrix().apply { postRotate(90f * turns) }
+        val rotated = Bitmap.createBitmap(
+            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true,
+        )
+        return bitmapToJpeg(context, rotated)
+    }
+
     /** Applies [filter] (`enhance` / `grayscale` / `blackWhite`) to [path]. */
     fun applyFilter(context: Context, path: String, filter: String): String {
         val bitmap = loadUprightBitmap(path)
@@ -155,7 +174,11 @@ object ImageProcessor {
         val bitmap = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(mat, bitmap)
         mat.release()
+        return bitmapToJpeg(context, bitmap)
+    }
 
+    /** Writes [bitmap] to a JPEG in the app cache and returns its path. */
+    private fun bitmapToJpeg(context: Context, bitmap: Bitmap): String {
         val dir = File(context.cacheDir, "paper_scanner").apply { mkdirs() }
         val file = File(dir, "${UUID.randomUUID()}.jpg")
         FileOutputStream(file).use { os ->

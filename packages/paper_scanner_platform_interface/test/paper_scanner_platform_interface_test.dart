@@ -61,6 +61,8 @@ void main() {
             return '/tmp/cropped.jpg';
           case 'applyFilter':
             return '/tmp/filtered.jpg';
+          case 'rotate':
+            return '/tmp/rotated.jpg';
         }
         return null;
       });
@@ -96,6 +98,20 @@ void main() {
       final out = await platform.cropPerspective('/tmp/in.jpg', Quad.full());
       expect(out, '/tmp/cropped.jpg');
       expect(((log.single.arguments as Map)['corners'] as List).length, 8);
+    });
+
+    test('rotate(0) short-circuits without a channel call', () async {
+      final out = await platform.rotate('/tmp/in.jpg', 0);
+      expect(out, '/tmp/in.jpg');
+      expect(log, isEmpty);
+    });
+
+    test('rotate normalizes quarter turns modulo 4 and sends them', () async {
+      final out = await platform.rotate('/tmp/in.jpg', 5); // 5 % 4 == 1
+      expect(out, '/tmp/rotated.jpg');
+      expect(log.single.method, 'rotate');
+      expect((log.single.arguments as Map)['path'], '/tmp/in.jpg');
+      expect((log.single.arguments as Map)['quarterTurns'], 1);
     });
   });
 }

@@ -1,4 +1,4 @@
-# paper_scanner
+# paper_document_scanner
 
 A **fully custom, themeable** Flutter document scanner: live camera, automatic
 edge detection, draggable corner crop, filters, multi-page, and optional PDF.
@@ -12,13 +12,13 @@ for why the OS scanners (ML Kit / VisionKit) cannot be themed.
 
 ```yaml
 dependencies:
-  paper_scanner: ^0.1.0
+  paper_document_scanner: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
-import 'package:paper_scanner/paper_scanner.dart';
+import 'package:paper_document_scanner/paper_document_scanner.dart';
 
 final result = await PaperScanner.open(
   context,

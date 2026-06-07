@@ -7,12 +7,12 @@ import 'package:camera_platform_interface/camera_platform_interface.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paper_scanner/paper_scanner.dart';
-import 'package:paper_scanner/src/ui/camera_view.dart';
-import 'package:paper_scanner/src/ui/crop_view.dart';
-import 'package:paper_scanner/src/ui/filter_view.dart';
-import 'package:paper_scanner/src/ui/page_thumbnails.dart';
-import 'package:paper_scanner/src/ui/scanner_chrome.dart';
+import 'package:paper_document_scanner/paper_document_scanner.dart';
+import 'package:paper_document_scanner/src/ui/camera_view.dart';
+import 'package:paper_document_scanner/src/ui/crop_view.dart';
+import 'package:paper_document_scanner/src/ui/filter_view.dart';
+import 'package:paper_document_scanner/src/ui/page_thumbnails.dart';
+import 'package:paper_document_scanner/src/ui/scanner_chrome.dart';
 import 'package:paper_scanner_platform_interface/paper_scanner_platform_interface.dart';
 
 /// A valid 1x1 PNG so `Image.file` widgets resolve without decode errors.
@@ -35,9 +35,16 @@ class _RealFileFake extends PaperScannerPlatform {
 
   @override
   Future<String> applyFilter(String path, ScanFilter filter) async => path;
+
+  @override
+  Future<String> rotate(String path, int quarterTurns) async => croppedPath;
 }
 
 class _CameraActionFake extends PaperScannerPlatform {
+  _CameraActionFake(this.croppedPath);
+
+  /// A real, on-disk path so the committed page's thumbnail resolves.
+  final String croppedPath;
   String? detectedPath;
 
   @override
@@ -45,6 +52,12 @@ class _CameraActionFake extends PaperScannerPlatform {
     detectedPath = path;
     return DetectedQuad(quad: Quad.full(), confidence: 1);
   }
+
+  @override
+  Future<String> cropPerspective(String path, Quad quad) async => croppedPath;
+
+  @override
+  Future<String> applyFilter(String path, ScanFilter filter) async => path;
 }
 
 class _FakeCameraPlatform extends camera_platform.CameraPlatform {
@@ -272,14 +285,15 @@ void main() {
 
     Future<void> pumpCameraView(
       WidgetTester tester,
-      PaperScannerController controller,
-    ) async {
+      PaperScannerController controller, {
+      PaperScannerStyle style = const PaperScannerStyle(),
+    }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: CameraView(
               controller: controller,
-              style: const PaperScannerStyle(),
+              style: style,
               onDone: () {},
               onReview: () {},
               onCancel: () {},
@@ -290,10 +304,35 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets('fills the scanner viewport with the live camera preview', (
+      tester,
+    ) async {
+      final controller = PaperScannerController(
+        options: const PaperScannerOptions(enableLiveDetection: false),
+      );
+      addTearDown(controller.dispose);
+
+      await pumpCameraView(tester, controller);
+
+      final previewFinder = find.byKey(
+        const Key('paper_scanner_camera_preview'),
+      );
+      expect(previewFinder, findsOneWidget);
+      expect(
+        tester.getSize(previewFinder),
+        tester.getSize(find.byType(CameraView)),
+      );
+    });
+
     testWidgets('flash, filters, auto-shutter, and capture controls work', (
       tester,
     ) async {
-      final scannerPlatform = _CameraActionFake();
+      final dir = Directory.systemTemp.createTempSync('paper_scanner_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final imgPath = '${dir.path}/page.png';
+      File(imgPath).writeAsBytesSync(base64Decode(_png1x1));
+
+      final scannerPlatform = _CameraActionFake(imgPath);
       final controller = PaperScannerController(
         options: const PaperScannerOptions(enableLiveDetection: false),
         platform: scannerPlatform,
@@ -316,17 +355,20 @@ void main() {
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
+      // Auto-capture is on by default; this control toggles it off.
       await tester.tap(
         find.byKey(const Key('paper_scanner_auto_shutter_control')),
       );
       await tester.pump();
-      expect(controller.autoCapture, isTrue);
+      expect(controller.autoCapture, isFalse);
 
+      // Default flow commits the page immediately (no Retake/Keep step).
       await tester.tap(find.byKey(const Key('paper_scanner_capture_button')));
       await tester.pumpAndSettle();
       expect(cameraPlatform.takePictureCount, 1);
       expect(scannerPlatform.detectedPath, '/tmp/paper_scanner_capture.jpg');
-      expect(controller.stage, ScanStage.crop);
+      expect(controller.pageCount, 1);
+      expect(controller.stage, ScanStage.camera);
     });
 
     testWidgets('positions top chrome with requested offsets', (tester) async {
@@ -395,7 +437,8 @@ void main() {
       File(imgPath).writeAsBytesSync(base64Decode(_png1x1));
 
       final controller = PaperScannerController(
-        options: const PaperScannerOptions(),
+        // CropView is the confirm-flow surface; keep the draft on the crop stage.
+        options: const PaperScannerOptions(confirmAfterCapture: true),
         platform: _RealFileFake(imgPath),
       );
       addTearDown(controller.dispose);
@@ -520,7 +563,7 @@ void main() {
   });
 
   group('PageReviewSheet', () {
-    testWidgets('lists committed pages and deletes one on tap', (tester) async {
+    Future<PaperScannerController> controllerWithPages(int count) async {
       final dir = Directory.systemTemp.createTempSync('paper_scanner_test');
       addTearDown(() => dir.deleteSync(recursive: true));
       final imgPath = '${dir.path}/page.png';
@@ -532,28 +575,42 @@ void main() {
       );
       addTearDown(controller.dispose);
 
-      await controller.onCaptured('a.jpg');
-      await controller.keepDraft();
-      await controller.onCaptured('b.jpg');
-      await controller.keepDraft();
-      expect(controller.pageCount, 2);
+      for (var index = 0; index < count; index++) {
+        await controller.onCaptured('page_$index.jpg');
+        await controller.keepDraft();
+      }
+      return controller;
+    }
 
+    Future<void> pumpReviewSheet(
+      WidgetTester tester,
+      PaperScannerController controller, {
+      PaperScannerStyle style = const PaperScannerStyle(),
+    }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: PageReviewSheet(
-              controller: controller,
-              style: const PaperScannerStyle(),
-            ),
+            body: PageReviewSheet(controller: controller, style: style),
           ),
         ),
       );
-      // Let the real file-backed images resolve cleanly.
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );
       await tester.pump();
+    }
 
+    testWidgets('lists committed pages and deletes one on tap', (tester) async {
+      final controller = await controllerWithPages(2);
+      expect(controller.pageCount, 2);
+
+      await pumpReviewSheet(tester, controller);
+
+      expect(find.text('Review'), findsNothing);
+      expect(
+        find.byKey(const Key('paper_scanner_review_close_button')),
+        findsOneWidget,
+      );
       expect(find.text('Page 1'), findsOneWidget);
       expect(find.text('Page 2'), findsOneWidget);
 
@@ -561,6 +618,239 @@ void main() {
       await tester.pump();
 
       expect(controller.pageCount, 1);
+    });
+
+    testWidgets('spaces review pages and opens the full-screen editor', (
+      tester,
+    ) async {
+      final controller = await controllerWithPages(2);
+
+      await pumpReviewSheet(tester, controller);
+
+      final firstItem = find.byKey(const Key('paper_scanner_review_item_0'));
+      final secondItem = find.byKey(const Key('paper_scanner_review_item_1'));
+      expect(firstItem, findsOneWidget);
+      expect(secondItem, findsOneWidget);
+      final gap =
+          tester.getTopLeft(secondItem).dy - tester.getBottomLeft(firstItem).dy;
+      expect(gap, greaterThanOrEqualTo(10));
+
+      await tester.tap(firstItem);
+      await tester.pumpAndSettle();
+
+      // Tapping a row opens the detail/edit view positioned on that page.
+      expect(
+        find.byKey(const Key('paper_scanner_page_preview')),
+        findsOneWidget,
+      );
+      expect(find.text('1 / 2'), findsOneWidget);
+
+      await tester.drag(
+        find.byKey(const Key('paper_scanner_page_preview_view')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 / 2'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('paper_scanner_preview_delete_button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.pageCount, 1);
+      expect(
+        find.byKey(const Key('paper_scanner_page_preview')),
+        findsOneWidget,
+      );
+      expect(find.text('Page 1'), findsOneWidget);
+    });
+
+    testWidgets('allows custom review list, tile, and preview builders', (
+      tester,
+    ) async {
+      final controller = await controllerWithPages(1);
+
+      await pumpReviewSheet(
+        tester,
+        controller,
+        style: PaperScannerStyle(
+          pageReviewListBuilder:
+              (
+                context,
+                controller,
+                pages,
+                style,
+                labels,
+                onReorder,
+                onPreview,
+                onDelete,
+              ) {
+                if (pages.isEmpty) {
+                  return Text('Custom list ${pages.length}');
+                }
+                return Column(
+                  children: [
+                    Text('Custom list ${pages.length}'),
+                    style.pageReviewTileBuilder!(
+                      context,
+                      pages.first,
+                      0,
+                      '${labels.pageCounter} 1',
+                      style,
+                      labels,
+                      () => onPreview(0),
+                      () => onDelete(0),
+                      const Icon(Icons.drag_indicator),
+                    ),
+                  ],
+                );
+              },
+          pageReviewTileBuilder:
+              (
+                context,
+                page,
+                index,
+                label,
+                style,
+                labels,
+                onPreview,
+                onDelete,
+                dragHandle,
+              ) {
+                return TextButton(
+                  key: const Key('custom_review_tile'),
+                  onPressed: onPreview,
+                  child: Text('Custom $label'),
+                );
+              },
+          pagePreviewBuilder:
+              (context, page, index, label, style, labels, onClose, onDelete) {
+                return Scaffold(
+                  key: const Key('custom_page_preview'),
+                  body: TextButton(
+                    key: const Key('custom_preview_delete'),
+                    onPressed: onDelete,
+                    child: Text('Preview $label'),
+                  ),
+                );
+              },
+        ),
+      );
+
+      expect(find.text('Custom list 1'), findsOneWidget);
+      expect(find.text('Custom Page 1'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('custom_review_tile')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('custom_page_preview')), findsOneWidget);
+      expect(find.text('Preview Page 1'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('custom_preview_delete')));
+      await tester.pumpAndSettle();
+
+      expect(controller.pageCount, 0);
+    });
+  });
+
+  group('PageEditorScreen', () {
+    Future<PaperScannerController> oneCommittedPage() async {
+      final dir = Directory.systemTemp.createTempSync('paper_scanner_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final imgPath = '${dir.path}/page.png';
+      File(imgPath).writeAsBytesSync(base64Decode(_png1x1));
+      final controller = PaperScannerController(
+        options: const PaperScannerOptions(),
+        platform: _RealFileFake(imgPath),
+      );
+      addTearDown(controller.dispose);
+      await controller.onCaptured(imgPath); // seamless commit → 1 page
+      return controller;
+    }
+
+    Future<void> pumpEditor(
+      WidgetTester tester,
+      PaperScannerController controller,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageEditorScreen(
+            controller: controller,
+            initialIndex: 0,
+            style: const PaperScannerStyle(),
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows crop, rotate, filter and delete tools', (tester) async {
+      final controller = await oneCommittedPage();
+      await pumpEditor(tester, controller);
+
+      expect(find.byKey(const Key('paper_scanner_editor_crop')), findsOneWidget);
+      expect(
+        find.byKey(const Key('paper_scanner_editor_rotate')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('paper_scanner_editor_filter')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('paper_scanner_preview_delete_button')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('rotate tool rotates the current page', (tester) async {
+      final controller = await oneCommittedPage();
+      await pumpEditor(tester, controller);
+      expect(controller.pages.single.rotationTurns, 0);
+
+      await tester.tap(find.byKey(const Key('paper_scanner_editor_rotate')));
+      await tester.pumpAndSettle();
+
+      expect(controller.pages.single.rotationTurns, 1);
+    });
+
+    testWidgets('filter tool opens the strip and sets a per-page filter', (
+      tester,
+    ) async {
+      final controller = await oneCommittedPage();
+      await pumpEditor(tester, controller);
+      expect(
+        find.byKey(const Key('paper_scanner_editor_filter_bar')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const Key('paper_scanner_editor_filter')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('paper_scanner_editor_filter_bar')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Grayscale'));
+      await tester.pumpAndSettle();
+      expect(controller.pages.single.filter, ScanFilter.grayscale);
+    });
+
+    testWidgets('crop tool opens the re-crop screen', (tester) async {
+      final controller = await oneCommittedPage();
+      await pumpEditor(tester, controller);
+
+      await tester.tap(find.byKey(const Key('paper_scanner_editor_crop')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('paper_scanner_recrop_screen')),
+        findsOneWidget,
+      );
     });
   });
 

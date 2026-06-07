@@ -35,17 +35,23 @@ enum DocumentDetector {
       }
     }
 
-    // Fallback for older iOS or when segmentation finds nothing.
+    // Fallback for older iOS or when segmentation finds nothing. Loosened so a
+    // smaller / lower-contrast document is still detected.
     let rectangles = VNDetectRectanglesRequest()
-    rectangles.maximumObservations = 1
-    rectangles.minimumConfidence = 0.4
-    rectangles.minimumAspectRatio = 0.3
+    rectangles.maximumObservations = 8
+    rectangles.minimumConfidence = 0.25
+    rectangles.minimumAspectRatio = 0.25
     rectangles.maximumAspectRatio = 1.0
-    rectangles.minimumSize = 0.2
-    rectangles.quadratureTolerance = 30
+    rectangles.minimumSize = 0.1
+    rectangles.quadratureTolerance = 35
     if (try? handler.perform([rectangles])) != nil,
-       let observation = rectangles.results?.first {
-      return map(observation)
+       let results = rectangles.results, !results.isEmpty {
+      // Favor the largest candidate (the document, not a small inner rectangle).
+      let best = results.max {
+        $0.boundingBox.width * $0.boundingBox.height
+          < $1.boundingBox.width * $1.boundingBox.height
+      }
+      if let best = best { return map(best) }
     }
     return nil
   }

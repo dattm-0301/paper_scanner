@@ -64,4 +64,22 @@ class MethodChannelPaperScanner extends PaperScannerPlatform {
     }
     return result;
   }
+
+  @override
+  Future<String> rotate(String path, int quarterTurns) async {
+    final turns = quarterTurns % 4;
+    // A zero rotation needs no native round-trip.
+    if (turns == 0) return path;
+    final result = await methodChannel.invokeMethod<String>(
+      'rotate',
+      <String, Object?>{'path': path, 'quarterTurns': turns},
+    );
+    if (result == null) {
+      throw PlatformException(
+        code: 'rotate_failed',
+        message: 'rotate returned no output path',
+      );
+    }
+    return result;
+  }
 }

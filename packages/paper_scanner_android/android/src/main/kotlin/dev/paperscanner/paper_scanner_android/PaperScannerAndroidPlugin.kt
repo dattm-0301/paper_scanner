@@ -50,6 +50,7 @@ class PaperScannerAndroidPlugin : FlutterPlugin, MethodCallHandler {
                     "detectInFrame" -> onDetectInFrame(call)
                     "cropPerspective" -> onCropPerspective(call)
                     "applyFilter" -> onApplyFilter(call)
+                    "rotate" -> onRotate(call)
                     else -> NOT_IMPLEMENTED
                 }
                 if (reply === NOT_IMPLEMENTED) {
@@ -94,6 +95,12 @@ class PaperScannerAndroidPlugin : FlutterPlugin, MethodCallHandler {
         val path = call.argument<String>("path")!!
         val filter = call.argument<String>("filter") ?: "original"
         return ImageProcessor.applyFilter(appContext, path, filter)
+    }
+
+    private fun onRotate(call: MethodCall): String {
+        val path = call.argument<String>("path")!!
+        val quarterTurns = call.argument<Int>("quarterTurns") ?: 0
+        return ImageProcessor.rotate(appContext, path, quarterTurns)
     }
 
     companion object {
