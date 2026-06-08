@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Add Swift Package Manager (SPM) support — `Package.swift` + Sources layout.
+
 ## 0.1.1
 
 * Retargets the federated implementation to `paper_document_scanner`.
