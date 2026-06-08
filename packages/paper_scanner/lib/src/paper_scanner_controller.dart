@@ -131,8 +131,9 @@ class PaperScannerController extends ChangeNotifier {
   /// Frames are dropped while a previous detection is in flight, so a slow
   /// device simply detects less often instead of queuing work.
   Future<void> detectLive(FrameData frame) async {
-    if (_disposed || !options.enableLiveDetection || _liveDetectInFlight)
+    if (_disposed || !options.enableLiveDetection || _liveDetectInFlight) {
       return;
+    }
     _liveDetectInFlight = true;
     try {
       final result = await _platform.detectInFrame(frame);
