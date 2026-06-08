@@ -2,7 +2,7 @@ name: paper_document_scanner
 description: >-
   A fully custom, themeable Flutter document scanner: live camera, automatic
   edge detection, draggable corner crop, filters, multi-page and optional PDF.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/dattm-0301/paper_scanner
 repository: https://github.com/dattm-0301/paper_scanner/tree/main/packages/paper_scanner
 issue_tracker: https://github.com/dattm-0301/paper_scanner/issues
