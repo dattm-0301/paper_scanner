@@ -1,3 +1,8 @@
+## 0.1.1
+
+* Fix static analysis lints.
+* Add example application.
+
 ## 0.1.0
 
 * Initial release.
