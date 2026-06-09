@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Bump `paper_scanner_ios` dependency to `^0.1.2` (adds Swift Package Manager support).
+
 ## 0.1.1
 
 * Fix static analysis lints.
