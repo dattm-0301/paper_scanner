@@ -1,3 +1,8 @@
+## 0.1.3
+
+* Update dependencies: `paper_scanner_platform_interface` to `^0.1.1`, `paper_scanner_android` to `^0.1.2`, and `paper_scanner_ios` to `^0.1.3`.
+* Update repository visibility to public.
+
 ## 0.1.2
 
 * Bump `paper_scanner_ios` dependency to `^0.1.2` (adds Swift Package Manager support).

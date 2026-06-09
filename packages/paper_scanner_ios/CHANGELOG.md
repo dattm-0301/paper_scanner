@@ -1,3 +1,8 @@
+## 0.1.3
+
+* Update `paper_scanner_platform_interface` dependency.
+* Update repository visibility to public.
+
 ## 0.1.2
 
 * Add Swift Package Manager (SPM) support — `Package.swift` + Sources layout.

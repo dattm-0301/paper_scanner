@@ -49,23 +49,23 @@ void main() {
     setUp(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-        log.add(call);
-        switch (call.method) {
-          case 'detectInImage':
-          case 'detectInFrame':
-            return <String, Object?>{
-              'corners': <double>[0, 0, 1, 0, 1, 1, 0, 1],
-              'confidence': 0.8,
-            };
-          case 'cropPerspective':
-            return '/tmp/cropped.jpg';
-          case 'applyFilter':
-            return '/tmp/filtered.jpg';
-          case 'rotate':
-            return '/tmp/rotated.jpg';
-        }
-        return null;
-      });
+            log.add(call);
+            switch (call.method) {
+              case 'detectInImage':
+              case 'detectInFrame':
+                return <String, Object?>{
+                  'corners': <double>[0, 0, 1, 0, 1, 1, 0, 1],
+                  'confidence': 0.8,
+                };
+              case 'cropPerspective':
+                return '/tmp/cropped.jpg';
+              case 'applyFilter':
+                return '/tmp/filtered.jpg';
+              case 'rotate':
+                return '/tmp/rotated.jpg';
+            }
+            return null;
+          });
       log.clear();
     });
 
@@ -83,11 +83,17 @@ void main() {
       expect((log.single.arguments as Map)['path'], '/tmp/in.jpg');
     });
 
-    test('applyFilter(original) short-circuits without a channel call', () async {
-      final out = await platform.applyFilter('/tmp/in.jpg', ScanFilter.original);
-      expect(out, '/tmp/in.jpg');
-      expect(log, isEmpty);
-    });
+    test(
+      'applyFilter(original) short-circuits without a channel call',
+      () async {
+        final out = await platform.applyFilter(
+          '/tmp/in.jpg',
+          ScanFilter.original,
+        );
+        expect(out, '/tmp/in.jpg');
+        expect(log, isEmpty);
+      },
+    );
 
     test('applyFilter sends the stable wire name', () async {
       await platform.applyFilter('/tmp/in.jpg', ScanFilter.blackWhite);

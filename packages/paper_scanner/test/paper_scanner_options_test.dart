@@ -15,23 +15,37 @@ void main() {
     });
 
     test('constructor assertions guard invalid configuration', () {
-      expect(() => PaperScannerOptions(detectionFps: 0),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(detectionFps: 31),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(minPages: -1),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(maxPages: -1),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(minPages: 3, maxPages: 2),
-          throwsA(isA<AssertionError>()));
+      expect(
+        () => PaperScannerOptions(detectionFps: 0),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(detectionFps: 31),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(minPages: -1),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(maxPages: -1),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(minPages: 3, maxPages: 2),
+        throwsA(isA<AssertionError>()),
+      );
     });
 
     test('valid min/max combinations are accepted', () {
-      expect(() => const PaperScannerOptions(minPages: 2, maxPages: 0),
-          returnsNormally); // 0 = unlimited
-      expect(() => const PaperScannerOptions(minPages: 1, maxPages: 3),
-          returnsNormally);
+      expect(
+        () => const PaperScannerOptions(minPages: 2, maxPages: 0),
+        returnsNormally,
+      ); // 0 = unlimited
+      expect(
+        () => const PaperScannerOptions(minPages: 1, maxPages: 3),
+        returnsNormally,
+      );
     });
 
     test('copyWith overrides only the provided fields', () {
@@ -81,14 +95,22 @@ void main() {
     });
 
     test('auto-capture tuning assertions guard invalid values', () {
-      expect(() => PaperScannerOptions(autoCaptureConfidence: 0),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(autoCaptureConfidence: 1.5),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(autoCaptureStableFrames: 0),
-          throwsA(isA<AssertionError>()));
-      expect(() => PaperScannerOptions(autoCaptureMotionTolerance: 0),
-          throwsA(isA<AssertionError>()));
+      expect(
+        () => PaperScannerOptions(autoCaptureConfidence: 0),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(autoCaptureConfidence: 1.5),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(autoCaptureStableFrames: 0),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => PaperScannerOptions(autoCaptureMotionTolerance: 0),
+        throwsA(isA<AssertionError>()),
+      );
     });
   });
 }

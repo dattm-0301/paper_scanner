@@ -94,8 +94,13 @@ class ScannerBottomActionBar extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: style.accentColor,
                   foregroundColor: style.onAccentColor,
-                  disabledBackgroundColor: style.accentColor.withValues(alpha: 0.4),
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  disabledBackgroundColor: style.accentColor.withValues(
+                    alpha: 0.4,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),

@@ -1,3 +1,8 @@
+## 0.1.2
+
+* Update `paper_scanner_platform_interface` dependency.
+* Update repository visibility to public.
+
 ## 0.1.1
 
 * Retargets the federated implementation to `paper_document_scanner`.

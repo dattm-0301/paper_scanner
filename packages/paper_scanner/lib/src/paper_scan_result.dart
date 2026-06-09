@@ -113,5 +113,6 @@ class PaperScanResult {
   int get pageCount => imagePaths.length;
 
   @override
-  String toString() => 'PaperScanResult(pages: ${imagePaths.length}, pdf: $pdfPath)';
+  String toString() =>
+      'PaperScanResult(pages: ${imagePaths.length}, pdf: $pdfPath)';
 }

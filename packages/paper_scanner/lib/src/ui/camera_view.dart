@@ -205,8 +205,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     for (var i = 0; i < 4; i++) {
       final pa = a.corners[i];
       final pb = b.corners[i];
-      if ((pa.x - pb.x).abs() > tolerance ||
-          (pa.y - pb.y).abs() > tolerance) {
+      if ((pa.x - pb.x).abs() > tolerance || (pa.y - pb.y).abs() > tolerance) {
         return false;
       }
     }

@@ -28,7 +28,8 @@ export 'package:paper_scanner_platform_interface/paper_scanner_platform_interfac
     show ScanFilter, Quad, ScanPoint, DetectedQuad;
 
 export 'src/paper_scan_result.dart';
-export 'src/paper_scanner_controller.dart' show PaperScannerController, ScanStage;
+export 'src/paper_scanner_controller.dart'
+    show PaperScannerController, ScanStage;
 export 'src/paper_scanner_options.dart';
 export 'src/paper_scanner_style.dart';
 export 'src/pdf_builder.dart' show buildPdf, PdfAssembler;

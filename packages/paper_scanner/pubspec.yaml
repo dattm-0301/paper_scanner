@@ -2,7 +2,7 @@ name: paper_document_scanner
 description: >-
   A fully custom, themeable Flutter document scanner: live camera, automatic
   edge detection, draggable corner crop, filters, multi-page and optional PDF.
-version: 0.1.2
+version: 0.1.3
 homepage: https://github.com/dattm-0301/paper_scanner
 repository: https://github.com/dattm-0301/paper_scanner/tree/main/packages/paper_scanner
 issue_tracker: https://github.com/dattm-0301/paper_scanner/issues
@@ -23,9 +23,9 @@ dependencies:
   # package is publishable. `melos bootstrap` (usePubspecOverrides: true)
   # writes a gitignored pubspec_overrides.yaml that repoints them at the local
   # paths during development.
-  paper_scanner_platform_interface: ^0.1.0
-  paper_scanner_android: ^0.1.1
-  paper_scanner_ios: ^0.1.2
+  paper_scanner_platform_interface: ^0.1.1
+  paper_scanner_android: ^0.1.2
+  paper_scanner_ios: ^0.1.3
   # Pinned to a known-good range to avoid the version-lock that stranded
   # other scanner packages.
   camera: ">=0.11.0 <0.13.0"

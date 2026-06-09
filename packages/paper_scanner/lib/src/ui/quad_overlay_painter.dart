@@ -39,7 +39,12 @@ class QuadOverlayPainter extends CustomPainter {
       ..lineTo(bl.dx, bl.dy)
       ..close();
 
-    canvas.drawPath(path, Paint()..color = fillColor..style = PaintingStyle.fill);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = fillColor
+        ..style = PaintingStyle.fill,
+    );
     canvas.drawPath(
       path,
       Paint()
@@ -49,7 +54,9 @@ class QuadOverlayPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
 
-    final dot = Paint()..color = strokeColor..style = PaintingStyle.fill;
+    final dot = Paint()
+      ..color = strokeColor
+      ..style = PaintingStyle.fill;
     for (final corner in [tl, tr, br, bl]) {
       canvas.drawCircle(corner, cornerDotRadius, dot);
     }

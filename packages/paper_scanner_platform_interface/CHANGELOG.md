@@ -1,3 +1,8 @@
+## 0.1.1
+
+* Fix static analysis warnings.
+* Update repository visibility to public.
+
 ## 0.1.0
 
 * Initial release.

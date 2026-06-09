@@ -290,10 +290,10 @@ void main() {
 
       final result = await controller.finish();
 
-      expect(
-        result.pages.map((p) => p.originalPath).toList(),
-        ['/b.jpg', '/a.jpg'],
-      );
+      expect(result.pages.map((p) => p.originalPath).toList(), [
+        '/b.jpg',
+        '/a.jpg',
+      ]);
       expect(result.imagePaths, ['/b.jpg.cropped', '/a.jpg.cropped']);
     });
   });

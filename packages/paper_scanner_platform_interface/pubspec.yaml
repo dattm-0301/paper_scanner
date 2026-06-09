@@ -3,7 +3,7 @@ description: >-
   A common platform interface for the paper_scanner plugin. Defines the
   detection, perspective-crop and filter operations every platform must
   implement.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/dattm-0301/paper_scanner
 repository: https://github.com/dattm-0301/paper_scanner/tree/main/packages/paper_scanner_platform_interface
 issue_tracker: https://github.com/dattm-0301/paper_scanner/issues

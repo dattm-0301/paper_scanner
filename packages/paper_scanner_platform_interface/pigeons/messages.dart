@@ -21,12 +21,13 @@ import 'package:pigeon/pigeon.dart';
     dartOut: 'lib/src/messages.g.dart',
     kotlinOut:
         '../paper_scanner_android/android/src/main/kotlin/dev/paperscanner/paper_scanner_android/Messages.g.kt',
-    kotlinOptions: KotlinOptions(package: 'dev.paperscanner.paper_scanner_android'),
+    kotlinOptions: KotlinOptions(
+      package: 'dev.paperscanner.paper_scanner_android',
+    ),
     swiftOut: '../paper_scanner_ios/ios/Classes/Messages.g.swift',
     dartPackageName: 'paper_scanner_platform_interface',
   ),
 )
-
 /// Pigeon mirror of `FrameFormat`.
 enum PigeonFrameFormat { yuv420, bgra8888 }
 

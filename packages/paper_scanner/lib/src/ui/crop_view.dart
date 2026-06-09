@@ -34,9 +34,7 @@ class CropView extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (draft == null)
-              Center(
-                child: CircularProgressIndicator(color: style.accentColor),
-              )
+              Center(child: CircularProgressIndicator(color: style.accentColor))
             else
               Padding(
                 padding: const EdgeInsets.symmetric(

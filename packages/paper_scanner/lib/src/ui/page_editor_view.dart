@@ -299,10 +299,7 @@ class _TopChrome extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.55),
-              Colors.transparent,
-            ],
+            colors: [Colors.black.withValues(alpha: 0.55), Colors.transparent],
           ),
         ),
         child: Row(
@@ -434,7 +431,10 @@ class _BottomTools extends StatelessWidget {
             ? LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.7),
+                ],
               )
             : null,
       ),
@@ -478,8 +478,7 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        tint ?? (active ? style.accentColor : Colors.white);
+    final color = tint ?? (active ? style.accentColor : Colors.white);
     return Semantics(
       button: true,
       label: label,

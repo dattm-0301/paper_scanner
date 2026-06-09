@@ -130,8 +130,7 @@ class _CornerCropEditorState extends State<CornerCropEditor> {
                   ),
                   for (var i = 0; i < 4; i++)
                     _buildHandle(i, quad.corners[i], box),
-                  if (widget.magnify && _activeCorner >= 0)
-                    _buildLoupe(box),
+                  if (widget.magnify && _activeCorner >= 0) _buildLoupe(box),
                 ],
               );
             },
@@ -163,7 +162,9 @@ class _CornerCropEditorState extends State<CornerCropEditor> {
             0.0,
             1.0,
           );
-          setState(() => _activePoint = Offset(nx * box.width, ny * box.height));
+          setState(
+            () => _activePoint = Offset(nx * box.width, ny * box.height),
+          );
           widget.onChanged(q.copyWithCorner(index, ScanPoint(nx, ny)));
         },
         onPanEnd: (_) => setState(() => _activeCorner = -1),
@@ -180,7 +181,10 @@ class _CornerCropEditorState extends State<CornerCropEditor> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.transparent,
-                    border: Border.all(color: style.cornerHandleColor, width: 3),
+                    border: Border.all(
+                      color: style.cornerHandleColor,
+                      width: 3,
+                    ),
                     boxShadow: const [
                       BoxShadow(color: Colors.black38, blurRadius: 3),
                     ],

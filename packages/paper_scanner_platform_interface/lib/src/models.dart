@@ -16,7 +16,8 @@ class ScanPoint {
 
   /// Builds a [ScanPoint] from a Flutter [Offset] that already holds normalized
   /// coordinates.
-  factory ScanPoint.fromOffset(Offset offset) => ScanPoint(offset.dx, offset.dy);
+  factory ScanPoint.fromOffset(Offset offset) =>
+      ScanPoint(offset.dx, offset.dy);
 
   /// Normalized horizontal position, `0.0` (left) .. `1.0` (right).
   final double x;
@@ -34,7 +35,8 @@ class ScanPoint {
   ScanPoint translate(double dx, double dy) => ScanPoint(x + dx, y + dy);
 
   @override
-  String toString() => 'ScanPoint(${x.toStringAsFixed(4)}, ${y.toStringAsFixed(4)})';
+  String toString() =>
+      'ScanPoint(${x.toStringAsFixed(4)}, ${y.toStringAsFixed(4)})';
 
   @override
   bool operator ==(Object other) =>
@@ -62,11 +64,11 @@ class Quad {
   /// A quad covering the entire frame (the sensible default when detection
   /// fails and the user must adjust corners manually).
   factory Quad.full() => const Quad(
-        topLeft: ScanPoint(0, 0),
-        topRight: ScanPoint(1, 0),
-        bottomRight: ScanPoint(1, 1),
-        bottomLeft: ScanPoint(0, 1),
-      );
+    topLeft: ScanPoint(0, 0),
+    topRight: ScanPoint(1, 0),
+    bottomRight: ScanPoint(1, 1),
+    bottomLeft: ScanPoint(0, 1),
+  );
 
   /// Reconstructs a quad from a flat list of 8 doubles in corner order:
   /// `[tlX, tlY, trX, trY, brX, brY, blX, blY]`.
@@ -92,28 +94,32 @@ class Quad {
   /// Flattens the quad to `[tlX, tlY, trX, trY, brX, brY, blX, blY]` for the
   /// platform channel.
   List<double> toList() => [
-        topLeft.x, topLeft.y,
-        topRight.x, topRight.y,
-        bottomRight.x, bottomRight.y,
-        bottomLeft.x, bottomLeft.y,
-      ];
+    topLeft.x,
+    topLeft.y,
+    topRight.x,
+    topRight.y,
+    bottomRight.x,
+    bottomRight.y,
+    bottomLeft.x,
+    bottomLeft.y,
+  ];
 
   /// Returns a copy with every corner clamped to the unit square.
   Quad get clamped => Quad(
-        topLeft: topLeft.clamped,
-        topRight: topRight.clamped,
-        bottomRight: bottomRight.clamped,
-        bottomLeft: bottomLeft.clamped,
-      );
+    topLeft: topLeft.clamped,
+    topRight: topRight.clamped,
+    bottomRight: bottomRight.clamped,
+    bottomLeft: bottomLeft.clamped,
+  );
 
   /// Replaces a single corner, identified by its index in [corners]
   /// (0 = TL, 1 = TR, 2 = BR, 3 = BL).
   Quad copyWithCorner(int index, ScanPoint point) => Quad(
-        topLeft: index == 0 ? point : topLeft,
-        topRight: index == 1 ? point : topRight,
-        bottomRight: index == 2 ? point : bottomRight,
-        bottomLeft: index == 3 ? point : bottomLeft,
-      );
+    topLeft: index == 0 ? point : topLeft,
+    topRight: index == 1 ? point : topRight,
+    bottomRight: index == 2 ? point : bottomRight,
+    bottomLeft: index == 3 ? point : bottomLeft,
+  );
 
   @override
   String toString() => 'Quad($topLeft, $topRight, $bottomRight, $bottomLeft)';
@@ -139,20 +145,21 @@ class DetectedQuad {
   /// Parses the map returned by the platform channel:
   /// `{ 'corners': List<double>(8), 'confidence': double }`.
   factory DetectedQuad.fromMap(Map<Object?, Object?> map) => DetectedQuad(
-        quad: Quad.fromList(map['corners']! as List<Object?>),
-        confidence: (map['confidence'] as num?)?.toDouble() ?? 0,
-      );
+    quad: Quad.fromList(map['corners']! as List<Object?>),
+    confidence: (map['confidence'] as num?)?.toDouble() ?? 0,
+  );
 
   final Quad quad;
   final double confidence;
 
   Map<String, Object?> toMap() => {
-        'corners': quad.toList(),
-        'confidence': confidence,
-      };
+    'corners': quad.toList(),
+    'confidence': confidence,
+  };
 
   @override
-  String toString() => 'DetectedQuad($quad, confidence: ${confidence.toStringAsFixed(2)})';
+  String toString() =>
+      'DetectedQuad($quad, confidence: ${confidence.toStringAsFixed(2)})';
 }
 
 /// Enhancement filters applied to a captured page.
@@ -228,11 +235,11 @@ class FrameData {
 
   /// Serializes for the platform channel.
   Map<String, Object?> toMap() => {
-        'bytes': bytes,
-        'width': width,
-        'height': height,
-        'bytesPerRow': bytesPerRow,
-        'rotation': rotation,
-        'format': format.wireName,
-      };
+    'bytes': bytes,
+    'width': width,
+    'height': height,
+    'bytesPerRow': bytesPerRow,
+    'rotation': rotation,
+    'format': format.wireName,
+  };
 }

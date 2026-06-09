@@ -792,7 +792,10 @@ void main() {
       final controller = await oneCommittedPage();
       await pumpEditor(tester, controller);
 
-      expect(find.byKey(const Key('paper_scanner_editor_crop')), findsOneWidget);
+      expect(
+        find.byKey(const Key('paper_scanner_editor_crop')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const Key('paper_scanner_editor_rotate')),
         findsOneWidget,

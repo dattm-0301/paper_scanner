@@ -20,9 +20,8 @@ Future<String> buildPdf(List<String> imagePaths) async {
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(16),
-        build: (context) => pw.Center(
-          child: pw.Image(image, fit: pw.BoxFit.contain),
-        ),
+        build: (context) =>
+            pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
       ),
     );
   }

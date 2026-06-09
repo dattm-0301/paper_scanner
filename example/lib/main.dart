@@ -47,19 +47,19 @@ class _HomePageState extends State<HomePage> {
 
   /// A heavily restyled scanner — the payoff system scanners can't offer.
   PaperScannerStyle get _customStyle => const PaperScannerStyle(
-        backgroundColor: Color(0xFF0E1B16),
-        surfaceColor: Color(0xFF13261F),
-        accentColor: Color(0xFF1B998B),
-        overlayStrokeWidth: 4,
-        cornerHandleRadius: 16,
-        labels: PaperScannerLabels(
-          readyForNextScan: 'Ready for the next page.',
-          cropTitle: 'Line up the edges',
-          retake: 'Redo',
-          keep: 'Keep',
-          done: 'Finish',
-        ),
-      );
+    backgroundColor: Color(0xFF0E1B16),
+    surfaceColor: Color(0xFF13261F),
+    accentColor: Color(0xFF1B998B),
+    overlayStrokeWidth: 4,
+    cornerHandleRadius: 16,
+    labels: PaperScannerLabels(
+      readyForNextScan: 'Ready for the next page.',
+      cropTitle: 'Line up the edges',
+      retake: 'Redo',
+      keep: 'Keep',
+      done: 'Finish',
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -107,8 +107,10 @@ class _HomePageState extends State<HomePage> {
           if (_error != null)
             Text('Error: $_error', style: const TextStyle(color: Colors.red)),
           if (result != null) ...[
-            Text('Pages: ${result.pageCount}',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Pages: ${result.pageCount}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             if (result.pdfPath != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),

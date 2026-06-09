@@ -19,7 +19,8 @@ class _Fake extends PaperScannerPlatform {
   }
 
   @override
-  Future<DetectedQuad?> detectInFrame(FrameData frame) async => const DetectedQuad(
+  Future<DetectedQuad?> detectInFrame(FrameData frame) async =>
+      const DetectedQuad(
         quad: Quad(
           topLeft: ScanPoint(0.1, 0.1),
           topRight: ScanPoint(0.9, 0.1),
@@ -41,49 +42,53 @@ class _Fake extends PaperScannerPlatform {
 }
 
 FrameData _frame() => FrameData(
-      bytes: Uint8List(0),
-      width: 4,
-      height: 4,
-      bytesPerRow: 4,
-      rotation: 0,
-      format: FrameFormat.yuv420,
-    );
+  bytes: Uint8List(0),
+  width: 4,
+  height: 4,
+  bytesPerRow: 4,
+  rotation: 0,
+  format: FrameFormat.yuv420,
+);
 
 void main() {
-  test('onCaptured falls back to a full quad when still detection throws',
-      () async {
-    final c = PaperScannerController(
-      // Confirm flow so the draft (and its fallback quad) is observable.
-      options: const PaperScannerOptions(confirmAfterCapture: true),
-      platform: _Fake(failDetectImage: true),
-    );
-    addTearDown(c.dispose);
+  test(
+    'onCaptured falls back to a full quad when still detection throws',
+    () async {
+      final c = PaperScannerController(
+        // Confirm flow so the draft (and its fallback quad) is observable.
+        options: const PaperScannerOptions(confirmAfterCapture: true),
+        platform: _Fake(failDetectImage: true),
+      );
+      addTearDown(c.dispose);
 
-    await c.onCaptured('/p.jpg');
+      await c.onCaptured('/p.jpg');
 
-    expect(c.stage, ScanStage.crop);
-    expect(c.draft, isNotNull);
-    expect(c.draft!.quad, Quad.full());
-    expect(c.busy, isFalse);
-  });
+      expect(c.stage, ScanStage.crop);
+      expect(c.draft, isNotNull);
+      expect(c.draft!.quad, Quad.full());
+      expect(c.busy, isFalse);
+    },
+  );
 
-  test('keepDraft records an error and keeps the draft when crop fails',
-      () async {
-    final c = PaperScannerController(
-      options: const PaperScannerOptions(confirmAfterCapture: true),
-      platform: _Fake(failCrop: true),
-    );
-    addTearDown(c.dispose);
+  test(
+    'keepDraft records an error and keeps the draft when crop fails',
+    () async {
+      final c = PaperScannerController(
+        options: const PaperScannerOptions(confirmAfterCapture: true),
+        platform: _Fake(failCrop: true),
+      );
+      addTearDown(c.dispose);
 
-    await c.onCaptured('/p.jpg');
-    await c.keepDraft();
+      await c.onCaptured('/p.jpg');
+      await c.keepDraft();
 
-    expect(c.error, isNotNull);
-    expect(c.pageCount, 0);
-    expect(c.draft, isNotNull); // not committed
-    expect(c.stage, ScanStage.crop);
-    expect(c.busy, isFalse);
-  });
+      expect(c.error, isNotNull);
+      expect(c.pageCount, 0);
+      expect(c.draft, isNotNull); // not committed
+      expect(c.stage, ScanStage.crop);
+      expect(c.busy, isFalse);
+    },
+  );
 
   test('finish rethrows when PDF assembly fails', () async {
     final c = PaperScannerController(
@@ -177,7 +182,9 @@ void main() {
     c.dispose();
 
     expect(c.markCameraReady, returnsNormally);
-    await c.detectLive(_frame()); // guarded; must not notify a disposed notifier
+    await c.detectLive(
+      _frame(),
+    ); // guarded; must not notify a disposed notifier
     expect(c.liveQuad, isNull);
   });
 }

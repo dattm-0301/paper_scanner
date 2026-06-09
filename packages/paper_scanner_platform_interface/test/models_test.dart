@@ -96,13 +96,13 @@ void main() {
     const channel = MethodChannel('paper_scanner');
 
     FrameData frame() => FrameData(
-          bytes: Uint8List(0),
-          width: 2,
-          height: 2,
-          bytesPerRow: 2,
-          rotation: 0,
-          format: FrameFormat.yuv420,
-        );
+      bytes: Uint8List(0),
+      width: 2,
+      height: 2,
+      bytesPerRow: 2,
+      rotation: 0,
+      format: FrameFormat.yuv420,
+    );
 
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -112,12 +112,12 @@ void main() {
     test('parses the channel response', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-        expect(call.method, 'detectInFrame');
-        return <String, Object?>{
-          'corners': <double>[0, 0, 1, 0, 1, 1, 0, 1],
-          'confidence': 0.6,
-        };
-      });
+            expect(call.method, 'detectInFrame');
+            return <String, Object?>{
+              'corners': <double>[0, 0, 1, 0, 1, 1, 0, 1],
+              'confidence': 0.6,
+            };
+          });
 
       final dq = await platform.detectInFrame(frame());
       expect(dq, isNotNull);
