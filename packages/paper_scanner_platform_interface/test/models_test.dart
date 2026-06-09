@@ -1,6 +1,3 @@
-import 'dart:typed_data';
-import 'dart:ui' show Offset;
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paper_scanner_platform_interface/paper_scanner_platform_interface.dart';
